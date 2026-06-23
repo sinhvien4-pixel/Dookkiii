@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Star, CheckCircle, Send } from "lucide-react";
 import Link from "next/link";
 import { useAppStore } from "@/store/appStore";
+import { feedbackService } from "@/services/feedbackService";
 import { ConnectionStatus } from "@/components/shared/ConnectionStatus";
 
 const PRESET_COMMENTS = [
@@ -19,7 +20,7 @@ const PRESET_COMMENTS = [
 ];
 
 export default function FeedbackPage() {
-  const { branches, createFeedback } = useAppStore();
+  const { branches } = useAppStore();
 
   const [step, setStep] = useState(1);
   const [branchId, setBranchId] = useState("");
@@ -35,7 +36,7 @@ export default function FeedbackPage() {
 
   const handleSubmit = () => {
     if (!branchId || !employeeId || rating === 0) return;
-    createFeedback({
+    feedbackService.create({
       branchId,
       employeeId,
       rating,

@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useAppStore } from "@/store/appStore";
+import { tableService } from "@/services/tableService";
+import { queueService } from "@/services/queueService";
 import {
   getBranchStats, getTimerColor,
   getTableRemainingMinutes, getTableElapsedMinutes, formatTimeAgo
@@ -19,12 +21,7 @@ import { Branch, Table, WaitingCustomer } from "@/types";
 
 export default function StaffDashboard() {
   const router = useRouter();
-  const {
-    branches, staffBranchId, staffName, setStaffBranch,
-    startTable, endTable, setTableCleaning, setTableAvailable,
-    adjustTableTime, setTableCustomTime,
-    addToQueue, removeFromQueue,
-  } = useAppStore();
+  const { branches, staffBranchId, staffName, setStaffBranch } = useAppStore();
 
   const [customTimeDialog, setCustomTimeDialog] = useState<{ tableId: string; open: boolean } | null>(null);
   const [customMins, setCustomMins] = useState("90");
@@ -51,14 +48,14 @@ export default function StaffDashboard() {
 
   const confirmStartServing = () => {
     if (!startGuestsDialog) return;
-    startTable(staffBranchId, startGuestsDialog.tableId, parseInt(guestCount) || 2);
+    tableService.startTable(staffBranchId, startGuestsDialog.tableId, parseInt(guestCount) || 2);
     setStartGuestsDialog(null);
     setGuestCount("2");
   };
 
   const handleAddQueue = () => {
     if (!queueName.trim()) return;
-    addToQueue(staffBranchId, queueName, parseInt(queueParty) || 2, queuePhone);
+    queueService.add(staffBranchId, queueName, parseInt(queueParty) || 2, queuePhone);
     setQueueName("");
     setQueueParty("2");
     setQueuePhone("");
@@ -132,11 +129,11 @@ export default function StaffDashboard() {
                 key={table.id}
                 table={table}
                 onStart={() => setStartGuestsDialog({ tableId: table.id, open: true })}
-                onEnd={() => endTable(staffBranchId, table.id)}
-                onCleaning={() => setTableCleaning(staffBranchId, table.id)}
-                onAvailable={() => setTableAvailable(staffBranchId, table.id)}
-                onAddTime={() => adjustTableTime(staffBranchId, table.id, 5)}
-                onSubTime={() => adjustTableTime(staffBranchId, table.id, -5)}
+                onEnd={() => tableService.endTable(staffBranchId, table.id)}
+                onCleaning={() => tableService.setCleaning(staffBranchId, table.id)}
+                onAvailable={() => tableService.setAvailable(staffBranchId, table.id)}
+                onAddTime={() => tableService.adjustTime(staffBranchId, table.id, 5)}
+                onSubTime={() => tableService.adjustTime(staffBranchId, table.id, -5)}
                 onCustomTime={() => setCustomTimeDialog({ tableId: table.id, open: true })}
               />
             ))}
@@ -168,7 +165,7 @@ export default function StaffDashboard() {
                   key={customer.id}
                   customer={customer}
                   index={i}
-                  onRemove={() => removeFromQueue(staffBranchId, customer.id)}
+                  onRemove={() => queueService.remove(staffBranchId, customer.id)}
                 />
               ))}
             </div>
@@ -269,7 +266,7 @@ export default function StaffDashboard() {
             <div className="flex gap-3">
               <button
                 onClick={() => {
-                  setTableCustomTime(staffBranchId, customTimeDialog.tableId, parseInt(customMins) || 90);
+                  tableService.setCustomTime(staffBranchId, customTimeDialog.tableId, parseInt(customMins) || 90);
                   setCustomTimeDialog(null);
                 }}
                 className="flex-1 py-3 rounded-xl bg-dookki-red hover:bg-dookki-red-dark text-white font-bold transition-colors"
