@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { DataProvider } from "@/components/providers/DataProvider";
 
 export const metadata: Metadata = {
   title: "Dookki Live Board – Quản Lý Bàn Thông Minh",
@@ -18,7 +19,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        <DataProvider>{children}</DataProvider>
+      </body>
     </html>
   );
 }

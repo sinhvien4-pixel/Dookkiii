@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Navigation, MapPin, Clock, Users, X } from "lucide-react";
 import Link from "next/link";
-import { useSocket } from "@/hooks/useSocket";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { useAppStore } from "@/store/appStore";
 import { getBranchStats, calculateDistance, formatWaitTime } from "@/lib/utils";
@@ -12,7 +11,6 @@ import { ConnectionStatus } from "@/components/shared/ConnectionStatus";
 import { Branch } from "@/types";
 
 export default function MapPage() {
-  useSocket();
   const { branches } = useAppStore();
   const { location, error: locationError } = useGeolocation();
   const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);

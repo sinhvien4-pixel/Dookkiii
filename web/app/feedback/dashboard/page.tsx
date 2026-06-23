@@ -7,13 +7,11 @@ import Link from "next/link";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
-import { useSocket } from "@/hooks/useSocket";
 import { useAppStore } from "@/store/appStore";
 import { formatTimeAgo } from "@/lib/utils";
 import { ConnectionStatus } from "@/components/shared/ConnectionStatus";
 
 export default function FeedbackDashboard() {
-  useSocket();
   const { branches, feedbacks } = useAppStore();
   const [filterBranch, setFilterBranch] = useState<string>("all");
   const [filterRating, setFilterRating] = useState<number>(0);

@@ -8,7 +8,6 @@ import {
 } from "recharts";
 import { ArrowLeft, TrendingUp, DollarSign, Users, Clock, Table2, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import { useSocket } from "@/hooks/useSocket";
 import { useAppStore } from "@/store/appStore";
 import { getBranchStats, formatWaitTime } from "@/lib/utils";
 import { ConnectionStatus } from "@/components/shared/ConnectionStatus";
@@ -47,7 +46,6 @@ function formatVND(n: number): string {
 }
 
 export default function AnalyticsPage() {
-  useSocket();
   const { branches } = useAppStore();
 
   const globalStats = useMemo(() => {

@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, Clock, Users, Navigation, RefreshCw, ArrowLeft, Map, Star } from "lucide-react";
 import Link from "next/link";
-import { useSocket } from "@/hooks/useSocket";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { useAppStore } from "@/store/appStore";
 import {
@@ -16,7 +15,6 @@ import { ConnectionStatus } from "@/components/shared/ConnectionStatus";
 import { Branch, BranchWithDistance, UserLocation } from "@/types";
 
 export default function CustomerPage() {
-  useSocket();
   const { branches } = useAppStore();
   const { location, loading: locLoading } = useGeolocation();
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);

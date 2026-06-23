@@ -4,7 +4,6 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Star, CheckCircle, Send } from "lucide-react";
 import Link from "next/link";
-import { useSocket } from "@/hooks/useSocket";
 import { useAppStore } from "@/store/appStore";
 import { ConnectionStatus } from "@/components/shared/ConnectionStatus";
 
@@ -20,8 +19,7 @@ const PRESET_COMMENTS = [
 ];
 
 export default function FeedbackPage() {
-  const { socket } = useSocket();
-  const { branches } = useAppStore();
+  const { branches, createFeedback } = useAppStore();
 
   const [step, setStep] = useState(1);
   const [branchId, setBranchId] = useState("");
@@ -37,7 +35,7 @@ export default function FeedbackPage() {
 
   const handleSubmit = () => {
     if (!branchId || !employeeId || rating === 0) return;
-    socket.emit("feedback:create", {
+    createFeedback({
       branchId,
       employeeId,
       rating,

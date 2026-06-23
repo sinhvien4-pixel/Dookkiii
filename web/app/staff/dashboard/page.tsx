@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -8,7 +8,6 @@ import {
   UserPlus, Trash2, Settings, ArrowLeft,
 } from "lucide-react";
 import Link from "next/link";
-import { useSocket } from "@/hooks/useSocket";
 import { useAppStore } from "@/store/appStore";
 import {
   getBranchStats, getTimerColor,
@@ -20,10 +19,13 @@ import { Branch, Table, WaitingCustomer } from "@/types";
 
 export default function StaffDashboard() {
   const router = useRouter();
-  const { socket } = useSocket();
-  const { branches, staffBranchId, staffName, setStaffBranch } = useAppStore();
+  const {
+    branches, staffBranchId, staffName, setStaffBranch,
+    startTable, endTable, setTableCleaning, setTableAvailable,
+    adjustTableTime, setTableCustomTime,
+    addToQueue, removeFromQueue,
+  } = useAppStore();
 
-  // ── All useState hooks declared unconditionally ──
   const [customTimeDialog, setCustomTimeDialog] = useState<{ tableId: string; open: boolean } | null>(null);
   const [customMins, setCustomMins] = useState("90");
   const [startGuestsDialog, setStartGuestsDialog] = useState<{ tableId: string; open: boolean } | null>(null);
@@ -33,22 +35,8 @@ export default function StaffDashboard() {
   const [queueParty, setQueueParty] = useState("2");
   const [queuePhone, setQueuePhone] = useState("");
 
-  // ── useCallback must be declared before any early return ──
-  // Root cause of previous hook order violation: this was placed AFTER the
-  // conditional early return below, causing React to call it on some renders
-  // but not others (when staffBranchId was null).
-  const emit = useCallback(
-    (event: string, payload: Record<string, unknown>) => {
-      socket.emit(event, payload);
-    },
-    [socket]
-  );
-
-  // Non-hook derivations (safe after all hooks)
   const currentBranch = branches.find((b) => b.id === staffBranchId);
 
-  // ── Early return: branch selector ──
-  // This is valid because ALL hooks above have already been called.
   if (!staffBranchId || !currentBranch) {
     return (
       <BranchSelector
@@ -61,63 +49,20 @@ export default function StaffDashboard() {
 
   const stats = getBranchStats(currentBranch);
 
-  // ── Event handlers (plain functions, not hooks — safe after early return) ──
-  const handleStartServing = (tableId: string) => {
-    setStartGuestsDialog({ tableId, open: true });
-  };
-
   const confirmStartServing = () => {
     if (!startGuestsDialog) return;
-    emit("table:start", {
-      branchId: staffBranchId,
-      tableId: startGuestsDialog.tableId,
-      guests: parseInt(guestCount) || 2,
-    });
+    startTable(staffBranchId, startGuestsDialog.tableId, parseInt(guestCount) || 2);
     setStartGuestsDialog(null);
     setGuestCount("2");
   };
 
-  const handleEndServing = (tableId: string) => {
-    emit("table:end", { branchId: staffBranchId, tableId });
-  };
-
-  const handleCleaning = (tableId: string) => {
-    emit("table:cleaning", { branchId: staffBranchId, tableId });
-  };
-
-  const handleAvailable = (tableId: string) => {
-    emit("table:available", { branchId: staffBranchId, tableId });
-  };
-
-  const handleAdjustTime = (tableId: string, minutes: number) => {
-    emit("table:adjust-time", { branchId: staffBranchId, tableId, minutes });
-  };
-
-  const handleCustomTime = (tableId: string) => {
-    emit("table:custom-time", {
-      branchId: staffBranchId,
-      tableId,
-      totalMinutes: parseInt(customMins) || 90,
-    });
-    setCustomTimeDialog(null);
-  };
-
   const handleAddQueue = () => {
     if (!queueName.trim()) return;
-    emit("queue:add", {
-      branchId: staffBranchId,
-      name: queueName,
-      partySize: parseInt(queueParty) || 2,
-      phone: queuePhone,
-    });
+    addToQueue(staffBranchId, queueName, parseInt(queueParty) || 2, queuePhone);
     setQueueName("");
     setQueueParty("2");
     setQueuePhone("");
     setQueueDialog(false);
-  };
-
-  const handleRemoveQueue = (customerId: string) => {
-    emit("queue:remove", { branchId: staffBranchId, customerId });
   };
 
   return (
@@ -186,12 +131,12 @@ export default function StaffDashboard() {
               <TableCard
                 key={table.id}
                 table={table}
-                onStart={() => handleStartServing(table.id)}
-                onEnd={() => handleEndServing(table.id)}
-                onCleaning={() => handleCleaning(table.id)}
-                onAvailable={() => handleAvailable(table.id)}
-                onAddTime={() => handleAdjustTime(table.id, 5)}
-                onSubTime={() => handleAdjustTime(table.id, -5)}
+                onStart={() => setStartGuestsDialog({ tableId: table.id, open: true })}
+                onEnd={() => endTable(staffBranchId, table.id)}
+                onCleaning={() => setTableCleaning(staffBranchId, table.id)}
+                onAvailable={() => setTableAvailable(staffBranchId, table.id)}
+                onAddTime={() => adjustTableTime(staffBranchId, table.id, 5)}
+                onSubTime={() => adjustTableTime(staffBranchId, table.id, -5)}
                 onCustomTime={() => setCustomTimeDialog({ tableId: table.id, open: true })}
               />
             ))}
@@ -223,7 +168,7 @@ export default function StaffDashboard() {
                   key={customer.id}
                   customer={customer}
                   index={i}
-                  onRemove={() => handleRemoveQueue(customer.id)}
+                  onRemove={() => removeFromQueue(staffBranchId, customer.id)}
                 />
               ))}
             </div>
@@ -323,7 +268,10 @@ export default function StaffDashboard() {
             />
             <div className="flex gap-3">
               <button
-                onClick={() => handleCustomTime(customTimeDialog.tableId)}
+                onClick={() => {
+                  setTableCustomTime(staffBranchId, customTimeDialog.tableId, parseInt(customMins) || 90);
+                  setCustomTimeDialog(null);
+                }}
                 className="flex-1 py-3 rounded-xl bg-dookki-red hover:bg-dookki-red-dark text-white font-bold transition-colors"
               >
                 Lưu
@@ -512,7 +460,6 @@ function TableCard({
         <TableStatusBadge status={table.status} size="sm" />
       </div>
 
-      {/* Timer display for occupied tables */}
       {table.status === "occupied" && table.startTime && (
         <div className="mb-3 space-y-1.5">
           <div className="flex justify-between text-xs">
@@ -530,7 +477,6 @@ function TableCard({
         </div>
       )}
 
-      {/* Actions */}
       <div className="space-y-2">
         {table.status === "available" && (
           <button

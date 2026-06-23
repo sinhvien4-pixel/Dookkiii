@@ -2,13 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSocket } from "@/hooks/useSocket";
 import { useAppStore } from "@/store/appStore";
 import { getBranchStats, getTableRemainingMinutes, getStatusVi, getTimerColor } from "@/lib/utils";
 import { Branch, Table } from "@/types";
 
 export default function LiveBoardPage() {
-  useSocket();
   const { branches } = useAppStore();
   const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
   const [now, setNow] = useState(new Date());
