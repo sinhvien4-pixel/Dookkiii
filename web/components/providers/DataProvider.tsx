@@ -26,14 +26,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     (async () => {
       try {
+        console.log("[Dookki] Connecting to Firebase...");
         const { getDb } = await import("@/lib/firebase");
         const fs = await import("firebase/firestore");
         const db = getDb();
+        console.log("[Dookki] Firebase initialized, checking version...");
 
-        // ── 1. Check if Firestore needs seeding ──
         const metaRef = fs.doc(db, "_meta", "version");
         const metaSnap = await fs.getDoc(metaRef);
         const ver = metaSnap.exists() ? metaSnap.data().v : 0;
+        console.log("[Dookki] Firestore version:", ver, "/ needed:", DATA_VERSION);
 
         if (ver < DATA_VERSION) {
           // Delete all existing data first
@@ -67,9 +69,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           }
 
           await fs.setDoc(metaRef, { v: DATA_VERSION });
+          console.log("[Dookki] Seed complete!");
         }
 
-        // ── 2. NOW set up realtime listeners (data is complete) ──
+        console.log("[Dookki] Setting up realtime listeners...");
         unsubBranches = fs.onSnapshot(
           fs.collection(db, "branches"),
           (snap) => {
@@ -94,7 +97,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
         useAppStore.getState().setConnected(true);
       } catch (err) {
-        console.warn("Firebase unavailable, using local data:", err);
+        console.error("[Dookki] Firebase FAILED:", err);
         useAppStore.getState().setConnected(false);
       }
     })();
