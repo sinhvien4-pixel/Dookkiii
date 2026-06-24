@@ -67,21 +67,22 @@ export default function MapPage() {
           ? `${stats.availableTables} bàn trống`
           : "Hết bàn";
         const statusColor = stats.availableTables > 0 ? "#22c55e" : "#ef4444";
+        const statusBg = stats.availableTables > 0 ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.15)";
 
         const dookkiIcon = L.divIcon({
           html: `
-            <div style="display:flex;flex-direction:column;align-items:center;pointer-events:auto">
-              <div style="background:rgba(0,0,0,0.85);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:4px 8px;margin-bottom:4px;white-space:nowrap;text-align:center;min-width:max-content">
-                <div style="color:white;font-weight:700;font-size:11px;line-height:1.3">${shortName}</div>
-                <div style="color:${statusColor};font-size:10px;font-weight:600">${statusText}</div>
+            <div style="display:flex;flex-direction:column;align-items:center;pointer-events:auto;position:relative">
+              <div style="background:rgba(0,0,0,0.9);border:1.5px solid rgba(255,255,255,0.25);border-radius:10px;padding:5px 10px;margin-bottom:4px;white-space:nowrap;text-align:center;min-width:max-content;backdrop-filter:blur(8px)">
+                <div style="color:white;font-weight:800;font-size:12px;line-height:1.3;letter-spacing:0.3px">${shortName}</div>
+                <div style="color:${statusColor};font-size:10px;font-weight:700;margin-top:1px;background:${statusBg};border-radius:4px;padding:1px 4px">${statusText}</div>
               </div>
-              <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:6px solid rgba(0,0,0,0.85);margin-bottom:2px"></div>
-              <div style="background:#E8212C;border:3px solid white;border-radius:50%;width:14px;height:14px;box-shadow:0 2px 8px rgba(232,33,44,0.6)"></div>
+              <div style="width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:7px solid rgba(0,0,0,0.9);margin-bottom:2px"></div>
+              <div class="marker-dot-pulse" style="background:#E8212C;border:3px solid white;border-radius:50%;width:16px;height:16px"></div>
             </div>
           `,
-          className: "",
-          iconSize: [120, 60],
-          iconAnchor: [60, 60],
+          className: "leaflet-dookki-marker",
+          iconSize: [140, 70],
+          iconAnchor: [70, 70],
         });
 
         const marker = L.marker([branch.coordinates.lat, branch.coordinates.lng], { icon: dookkiIcon })
@@ -105,10 +106,10 @@ export default function MapPage() {
       }
 
       const userIcon = L.divIcon({
-        html: `<div style="background:#3b82f6;border:3px solid white;border-radius:50%;width:16px;height:16px;box-shadow:0 0 0 6px rgba(59,130,246,0.25)"></div>`,
-        className: "",
-        iconSize: [16, 16],
-        iconAnchor: [8, 8],
+        html: `<div class="user-dot-pulse" style="background:#3b82f6;border:3px solid white;border-radius:50%;width:18px;height:18px"></div>`,
+        className: "leaflet-dookki-marker",
+        iconSize: [18, 18],
+        iconAnchor: [9, 9],
       });
 
       const marker = L.marker([location.lat, location.lng], { icon: userIcon })

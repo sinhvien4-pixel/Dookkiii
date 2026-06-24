@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowRight, Zap, MapPin, Clock, BarChart3, Users, Star, ChevronDown } from "lucide-react";
+import { ArrowRight, Zap, MapPin, Clock, BarChart3, Users, Star, ChevronDown, Play } from "lucide-react";
 
 const IMAGES = [
   "https://emdoi.vn/wp-content/uploads/2025/04/Dookki-Smart-City-7.webp",
@@ -61,6 +61,11 @@ export default function LandingPage() {
   const { scrollY } = useScroll();
   const heroOpacity = useTransform(scrollY, [0, 600], [1, 0]);
   const heroY = useTransform(scrollY, [0, 600], [0, 150]);
+  const [heroVideoPlaying, setHeroVideoPlaying] = useState(false);
+
+  const handlePlayHero = useCallback(() => {
+    setHeroVideoPlaying(true);
+  }, []);
 
   return (
     <div className="min-h-screen bg-black text-white overflow-x-hidden">
@@ -83,16 +88,37 @@ export default function LandingPage() {
       {/* HERO VIDEO */}
       <section ref={heroRef} className="relative h-screen flex items-center justify-center overflow-hidden">
         <motion.div style={{ opacity: heroOpacity, y: heroY }} className="absolute inset-0">
-          <iframe
-            src="https://www.youtube.com/embed/c4tW2VKeBys?autoplay=1&mute=1&loop=1&playlist=c4tW2VKeBys&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1"
-            className="absolute inset-0 w-full h-full pointer-events-none"
-            style={{ transform: "scale(1.15)" }}
-            allow="autoplay; encrypted-media; fullscreen"
-            allowFullScreen
-          />
+          {heroVideoPlaying ? (
+            <iframe
+              src="https://www.youtube.com/embed/c4tW2VKeBys?autoplay=1&mute=1&loop=1&playlist=c4tW2VKeBys&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1"
+              className="absolute inset-0 w-full h-full pointer-events-none"
+              style={{ transform: "scale(1.15)" }}
+              allow="autoplay; encrypted-media; fullscreen"
+              allowFullScreen
+            />
+          ) : (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://img.youtube.com/vi/c4tW2VKeBys/maxresdefault.jpg"
+                alt="Dookki Video Background"
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ transform: "scale(1.15)" }}
+              />
+              <button
+                onClick={handlePlayHero}
+                className="absolute inset-0 z-10 flex items-center justify-center group cursor-pointer"
+                aria-label="Phát video"
+              >
+                <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-dookki-red/90 backdrop-blur-sm flex items-center justify-center shadow-2xl shadow-red-500/40 group-hover:scale-110 group-active:scale-95 transition-transform">
+                  <Play className="w-8 h-8 md:w-10 md:h-10 text-white ml-1" fill="white" />
+                </div>
+              </button>
+            </>
+          )}
           {/* Overlays */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black" />
-          <div className="absolute inset-0 bg-dookki-red/5" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black pointer-events-none" />
+          <div className="absolute inset-0 bg-dookki-red/5 pointer-events-none" />
         </motion.div>
 
         <motion.div

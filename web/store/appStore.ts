@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { Branch, Feedback } from "@/types";
+import { Branch, Employee, Feedback } from "@/types";
 
 interface AppState {
   branches: Branch[];
@@ -10,10 +10,6 @@ interface AppState {
   staffBranchId: string | null;
   staffName: string | null;
 
-  // ── Setters ──────────────────────────────────────────────────────────
-  // Data mutations are handled exclusively by the service layer (services/).
-  // When migrating to Firebase: services write to Firestore, and
-  // Firestore onSnapshot listeners call these setters to sync the store.
   setBranches: (branches: Branch[]) => void;
   updateBranch: (branchId: string, branch: Branch) => void;
   setFeedbacks: (feedbacks: Feedback[]) => void;
@@ -22,7 +18,9 @@ interface AppState {
   setStaffBranch: (id: string | null) => void;
   setStaffName: (name: string | null) => void;
 
-  // ── Derived reads ─────────────────────────────────────────────────────
+  addEmployeeToBranch: (branchId: string, employee: Employee) => void;
+  removeEmployeeFromBranch: (branchId: string, employeeId: string) => void;
+
   getSelectedBranch: () => Branch | null;
   getStaffBranch: () => Branch | null;
 }
@@ -45,6 +43,24 @@ export const useAppStore = create<AppState>()(
       setSelectedBranch: (id) => set({ selectedBranchId: id }),
       setStaffBranch: (id) => set({ staffBranchId: id }),
       setStaffName: (name) => set({ staffName: name }),
+
+      addEmployeeToBranch: (branchId, employee) =>
+        set((s) => ({
+          branches: s.branches.map((b) =>
+            b.id !== branchId
+              ? b
+              : { ...b, employees: [...b.employees, { ...employee, branchId }] }
+          ),
+        })),
+
+      removeEmployeeFromBranch: (branchId, employeeId) =>
+        set((s) => ({
+          branches: s.branches.map((b) =>
+            b.id !== branchId
+              ? b
+              : { ...b, employees: b.employees.filter((e) => e.id !== employeeId) }
+          ),
+        })),
 
       getSelectedBranch: () => {
         const { branches, selectedBranchId } = get();

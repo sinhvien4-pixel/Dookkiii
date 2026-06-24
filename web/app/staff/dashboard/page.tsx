@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LogOut, Plus, Minus, Users,
   UserPlus, Trash2, Settings, ArrowLeft,
+  X, Star, ChevronDown, ChevronUp, MessageSquare,
 } from "lucide-react";
 import Link from "next/link";
 import { useAppStore } from "@/store/appStore";
@@ -17,11 +18,14 @@ import {
 } from "@/lib/utils";
 import { TableStatusBadge } from "@/components/shared/TableStatusBadge";
 import { ConnectionStatus } from "@/components/shared/ConnectionStatus";
-import { Branch, Table, WaitingCustomer } from "@/types";
+import { Branch, Table, WaitingCustomer, Employee, Feedback } from "@/types";
+import { v4 as uuidv4 } from "uuid";
+
+const AVAILABLE_POSITIONS = ["Phục vụ bàn", "Thu ngân", "Quản lý ca", "Bếp trưởng", "Phụ bếp"];
 
 export default function StaffDashboard() {
   const router = useRouter();
-  const { branches, staffBranchId, staffName, setStaffBranch } = useAppStore();
+  const { branches, feedbacks, staffBranchId, staffName, setStaffBranch, addEmployeeToBranch, removeEmployeeFromBranch } = useAppStore();
 
   const [customTimeDialog, setCustomTimeDialog] = useState<{ tableId: string; open: boolean } | null>(null);
   const [customMins, setCustomMins] = useState("90");
@@ -31,6 +35,10 @@ export default function StaffDashboard() {
   const [queueName, setQueueName] = useState("");
   const [queueParty, setQueueParty] = useState("2");
   const [queuePhone, setQueuePhone] = useState("");
+  const [addEmployeeDialog, setAddEmployeeDialog] = useState(false);
+  const [newEmpName, setNewEmpName] = useState("");
+  const [newEmpPosition, setNewEmpPosition] = useState(AVAILABLE_POSITIONS[0]);
+  const [expandedEmployeeId, setExpandedEmployeeId] = useState<string | null>(null);
 
   const currentBranch = branches.find((b) => b.id === staffBranchId);
 
@@ -173,30 +181,35 @@ export default function StaffDashboard() {
 
           {/* Employees */}
           <div className="mt-6">
-            <h2 className="text-lg font-black mb-4">Nhân Viên Ca Này</h2>
-            <div className="space-y-2">
-              {currentBranch.employees.map((emp) => {
-                const avg =
-                  emp.feedbackCount > 0
-                    ? (emp.totalRating / emp.feedbackCount).toFixed(1)
-                    : "–";
-                return (
-                  <div
-                    key={emp.id}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10"
-                  >
-                    <div className="w-9 h-9 rounded-full bg-dookki-red/20 border border-dookki-red/30 flex items-center justify-center text-sm font-bold text-dookki-red flex-shrink-0">
-                      {emp.name.charAt(0)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold truncate">{emp.name}</div>
-                      <div className="text-xs text-white/40">{emp.position}</div>
-                    </div>
-                    <div className="text-xs text-yellow-400 font-bold">⭐ {avg}</div>
-                  </div>
-                );
-              })}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-black">Nhân Viên Ca Này</h2>
+              <button
+                onClick={() => setAddEmployeeDialog(true)}
+                className="flex items-center gap-1.5 text-sm bg-dookki-red hover:bg-dookki-red-dark text-white px-3 py-1.5 rounded-lg font-semibold transition-colors"
+              >
+                <UserPlus className="w-4 h-4" />
+                Thêm
+              </button>
             </div>
+            {currentBranch.employees.length === 0 ? (
+              <div className="text-center py-12 text-white/30 border border-white/10 rounded-2xl bg-white/5">
+                <Users className="w-8 h-8 mx-auto mb-2" />
+                <p className="text-sm">Chưa có nhân viên trong ca</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {currentBranch.employees.map((emp) => (
+                  <EmployeeCard
+                    key={emp.id}
+                    employee={emp}
+                    feedbacks={feedbacks}
+                    expanded={expandedEmployeeId === emp.id}
+                    onToggle={() => setExpandedEmployeeId(expandedEmployeeId === emp.id ? null : emp.id)}
+                    onRemove={() => removeEmployeeFromBranch(staffBranchId, emp.id)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -347,6 +360,75 @@ export default function StaffDashboard() {
               </button>
               <button
                 onClick={() => setQueueDialog(false)}
+                className="px-6 py-3 rounded-xl border border-white/20 text-white/60 hover:bg-white/10 transition-colors"
+              >
+                Hủy
+              </button>
+            </div>
+          </ModalOverlay>
+        )}
+      </AnimatePresence>
+
+      {/* ADD EMPLOYEE DIALOG */}
+      <AnimatePresence>
+        {addEmployeeDialog && (
+          <ModalOverlay onClose={() => setAddEmployeeDialog(false)}>
+            <h2 className="text-xl font-black mb-6">Thêm Nhân Viên Vào Ca</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-white/60 mb-1.5 block">Tên nhân viên</label>
+                <input
+                  type="text"
+                  value={newEmpName}
+                  onChange={(e) => setNewEmpName(e.target.value)}
+                  placeholder="Nhập tên nhân viên..."
+                  className="staff-input w-full h-10 px-3 rounded-xl border border-white/20 text-sm"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="text-sm text-white/60 mb-1.5 block">Chức vụ</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {AVAILABLE_POSITIONS.map((pos) => (
+                    <button
+                      key={pos}
+                      onClick={() => setNewEmpPosition(pos)}
+                      className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all border ${
+                        newEmpPosition === pos
+                          ? "border-dookki-red bg-dookki-red/20 text-dookki-red"
+                          : "border-white/10 bg-white/5 text-white/60 hover:border-white/30"
+                      }`}
+                    >
+                      {pos}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  if (!newEmpName.trim() || !staffBranchId) return;
+                  addEmployeeToBranch(staffBranchId, {
+                    id: uuidv4(),
+                    branchId: staffBranchId,
+                    name: newEmpName.trim(),
+                    position: newEmpPosition,
+                    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(newEmpName.trim())}`,
+                    totalRating: 0,
+                    feedbackCount: 0,
+                  });
+                  setNewEmpName("");
+                  setNewEmpPosition(AVAILABLE_POSITIONS[0]);
+                  setAddEmployeeDialog(false);
+                }}
+                disabled={!newEmpName.trim()}
+                className="flex-1 py-3 rounded-xl bg-dookki-red hover:bg-dookki-red-dark text-white font-bold transition-colors disabled:opacity-50"
+              >
+                Thêm Nhân Viên
+              </button>
+              <button
+                onClick={() => setAddEmployeeDialog(false)}
                 className="px-6 py-3 rounded-xl border border-white/20 text-white/60 hover:bg-white/10 transition-colors"
               >
                 Hủy
@@ -568,6 +650,152 @@ function QueueItem({
       >
         <Trash2 className="w-3.5 h-3.5" />
       </button>
+    </div>
+  );
+}
+
+function EmployeeCard({
+  employee,
+  feedbacks,
+  expanded,
+  onToggle,
+  onRemove,
+}: {
+  employee: Employee;
+  feedbacks: Feedback[];
+  expanded: boolean;
+  onToggle: () => void;
+  onRemove: () => void;
+}) {
+  const avg = employee.feedbackCount > 0
+    ? (employee.totalRating / employee.feedbackCount).toFixed(1)
+    : "–";
+
+  const empFeedbacks = useMemo(
+    () => feedbacks
+      .filter((f) => f.employeeId === employee.id)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 10),
+    [feedbacks, employee.id]
+  );
+
+  const ratingDist = useMemo(() => {
+    const dist = [0, 0, 0, 0, 0];
+    empFeedbacks.forEach((f) => { if (f.rating >= 1 && f.rating <= 5) dist[f.rating - 1]++; });
+    return dist;
+  }, [empFeedbacks]);
+
+  const maxRatingCount = Math.max(1, ...ratingDist);
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/5 overflow-hidden transition-all">
+      <div className="flex items-center gap-3 p-3">
+        <div className="w-9 h-9 rounded-full bg-dookki-red/20 border border-dookki-red/30 flex items-center justify-center text-sm font-bold text-dookki-red flex-shrink-0">
+          {employee.name.charAt(0)}
+        </div>
+        <button onClick={onToggle} className="flex-1 min-w-0 text-left">
+          <div className="text-sm font-semibold truncate">{employee.name}</div>
+          <div className="text-xs text-white/40">{employee.position}</div>
+        </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="text-xs text-yellow-400 font-bold">⭐ {avg}</div>
+          <button onClick={onToggle} className="p-1 rounded-lg hover:bg-white/10 text-white/40 transition-colors">
+            {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+          <button
+            onClick={onRemove}
+            className="p-1 rounded-lg hover:bg-red-500/20 text-white/30 hover:text-red-400 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="px-3 pb-3 border-t border-white/10 pt-3 space-y-3">
+              {/* Rating summary */}
+              <div className="flex items-center gap-4">
+                <div className="text-center">
+                  <div className="text-3xl font-black text-yellow-400">{avg}</div>
+                  <div className="flex gap-0.5 mt-1">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star
+                        key={s}
+                        className={`w-3 h-3 ${s <= Math.round(Number(avg) || 0) ? "text-yellow-400" : "text-white/20"}`}
+                        fill={s <= Math.round(Number(avg) || 0) ? "currentColor" : "none"}
+                      />
+                    ))}
+                  </div>
+                  <div className="text-xs text-white/40 mt-1">{employee.feedbackCount} đánh giá</div>
+                </div>
+
+                {/* Rating distribution bars */}
+                <div className="flex-1 space-y-1">
+                  {[5, 4, 3, 2, 1].map((star) => (
+                    <div key={star} className="flex items-center gap-2">
+                      <span className="text-xs text-white/50 w-4 text-right">{star}</span>
+                      <Star className="w-3 h-3 text-yellow-400 flex-shrink-0" fill="currentColor" />
+                      <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-yellow-400 rounded-full transition-all"
+                          style={{ width: `${(ratingDist[star - 1] / maxRatingCount) * 100}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-white/40 w-4">{ratingDist[star - 1]}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Recent feedbacks */}
+              {empFeedbacks.length > 0 ? (
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs text-white/50 mb-2">
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>Đánh giá gần đây</span>
+                  </div>
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                    {empFeedbacks.map((fb) => (
+                      <div key={fb.id} className="p-2 rounded-lg bg-white/5 border border-white/5">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-semibold text-white/70">{fb.customerName}</span>
+                          <div className="flex items-center gap-1">
+                            <div className="flex gap-0.5">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <Star
+                                  key={s}
+                                  className={`w-2.5 h-2.5 ${s <= fb.rating ? "text-yellow-400" : "text-white/20"}`}
+                                  fill={s <= fb.rating ? "currentColor" : "none"}
+                                />
+                              ))}
+                            </div>
+                            <span className="text-xs text-white/30 ml-1">{formatTimeAgo(fb.createdAt)}</span>
+                          </div>
+                        </div>
+                        {fb.comment && (
+                          <p className="text-xs text-white/50 leading-relaxed">{fb.comment}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-4 text-white/30 text-xs">
+                  Chưa có đánh giá nào
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
