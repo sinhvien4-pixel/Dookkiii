@@ -17,6 +17,15 @@ function loadInstantData() {
   store.setFeedbacks(feedbacks);
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("timeout")), ms)
+    ),
+  ]);
+}
+
 export function DataProvider({ children }: { children: React.ReactNode }) {
   loadInstantData();
 
@@ -26,53 +35,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     (async () => {
       try {
-        console.log("[Dookki] Connecting to Firebase...");
         const { getDb } = await import("@/lib/firebase");
         const fs = await import("firebase/firestore");
         const db = getDb();
-        console.log("[Dookki] Firebase initialized, checking version...");
 
-        const metaRef = fs.doc(db, "_meta", "version");
-        const metaSnap = await fs.getDoc(metaRef);
-        const ver = metaSnap.exists() ? metaSnap.data().v : 0;
-        console.log("[Dookki] Firestore version:", ver, "/ needed:", DATA_VERSION);
-
-        if (ver < DATA_VERSION) {
-          // Delete all existing data first
-          const oldBranches = await fs.getDocs(fs.collection(db, "branches"));
-          const oldFeedbacks = await fs.getDocs(fs.collection(db, "feedbacks"));
-
-          const toDelete = [
-            ...oldBranches.docs.map((d) => d.ref),
-            ...oldFeedbacks.docs.map((d) => d.ref),
-          ];
-          for (let i = 0; i < toDelete.length; i += BATCH_LIMIT) {
-            const batch = fs.writeBatch(db);
-            toDelete.slice(i, i + BATCH_LIMIT).forEach((ref) => batch.delete(ref));
-            await batch.commit();
-          }
-
-          // Seed from deterministic store data
-          const store = useAppStore.getState();
-          const toWrite: Array<{ ref: ReturnType<typeof fs.doc>; data: unknown }> = [];
-          store.branches.forEach((b) =>
-            toWrite.push({ ref: fs.doc(db, "branches", b.id), data: JSON.parse(JSON.stringify(b)) })
-          );
-          store.feedbacks.forEach((f) =>
-            toWrite.push({ ref: fs.doc(db, "feedbacks", f.id), data: JSON.parse(JSON.stringify(f)) })
-          );
-
-          for (let i = 0; i < toWrite.length; i += BATCH_LIMIT) {
-            const batch = fs.writeBatch(db);
-            toWrite.slice(i, i + BATCH_LIMIT).forEach((op) => batch.set(op.ref, op.data));
-            await batch.commit();
-          }
-
-          await fs.setDoc(metaRef, { v: DATA_VERSION });
-          console.log("[Dookki] Seed complete!");
-        }
-
-        console.log("[Dookki] Setting up realtime listeners...");
+        // Set up listeners FIRST — they handle reconnection gracefully
         unsubBranches = fs.onSnapshot(
           fs.collection(db, "branches"),
           (snap) => {
@@ -95,9 +62,46 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           }
         );
 
+        // Seed check with timeout — don't block if Firestore is slow
+        const metaRef = fs.doc(db, "_meta", "version");
+        const metaSnap = await withTimeout(fs.getDoc(metaRef), 8000);
+        const ver = metaSnap.exists() ? metaSnap.data().v : 0;
+
+        if (ver < DATA_VERSION) {
+          const oldBranches = await withTimeout(fs.getDocs(fs.collection(db, "branches")), 8000);
+          const oldFeedbacks = await withTimeout(fs.getDocs(fs.collection(db, "feedbacks")), 8000);
+
+          const toDelete = [
+            ...oldBranches.docs.map((d) => d.ref),
+            ...oldFeedbacks.docs.map((d) => d.ref),
+          ];
+          for (let i = 0; i < toDelete.length; i += BATCH_LIMIT) {
+            const batch = fs.writeBatch(db);
+            toDelete.slice(i, i + BATCH_LIMIT).forEach((ref) => batch.delete(ref));
+            await batch.commit();
+          }
+
+          const store = useAppStore.getState();
+          const toWrite: Array<{ ref: ReturnType<typeof fs.doc>; data: unknown }> = [];
+          store.branches.forEach((b) =>
+            toWrite.push({ ref: fs.doc(db, "branches", b.id), data: JSON.parse(JSON.stringify(b)) })
+          );
+          store.feedbacks.forEach((f) =>
+            toWrite.push({ ref: fs.doc(db, "feedbacks", f.id), data: JSON.parse(JSON.stringify(f)) })
+          );
+
+          for (let i = 0; i < toWrite.length; i += BATCH_LIMIT) {
+            const batch = fs.writeBatch(db);
+            toWrite.slice(i, i + BATCH_LIMIT).forEach((op) => batch.set(op.ref, op.data));
+            await batch.commit();
+          }
+
+          await fs.setDoc(metaRef, { v: DATA_VERSION });
+        }
+
         useAppStore.getState().setConnected(true);
       } catch (err) {
-        console.error("[Dookki] Firebase FAILED:", err);
+        console.warn("[Dookki] Seed skipped (will retry on next visit):", (err as Error).message);
         useAppStore.getState().setConnected(false);
       }
     })();
