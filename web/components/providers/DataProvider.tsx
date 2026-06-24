@@ -5,9 +5,20 @@ import { useAppStore } from "@/store/appStore";
 import { Branch, Feedback } from "@/types";
 import { generateDemoBranches, generateDemoFeedbacks } from "@/lib/demoData";
 
-const DATA_VERSION = 3;
+const DATA_VERSION = 4;
+
+function loadInstantData() {
+  const store = useAppStore.getState();
+  if (store.branches.length > 0) return;
+  const branches = generateDemoBranches();
+  const feedbacks = generateDemoFeedbacks(branches);
+  store.setBranches(branches);
+  store.setFeedbacks(feedbacks);
+}
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
+  loadInstantData();
+
   useEffect(() => {
     let cleanup: (() => void) | undefined;
 
@@ -36,7 +47,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           collection(db, "feedbacks"),
           (snap) => {
             const feedbacks: Feedback[] = snap.docs.map((d) => d.data() as Feedback);
-            useAppStore.getState().setFeedbacks(feedbacks);
+            if (feedbacks.length > 0) {
+              useAppStore.getState().setFeedbacks(feedbacks);
+            }
           }
         );
 
@@ -57,13 +70,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             await delBatch.commit();
           }
 
-          const branches = generateDemoBranches();
-          const feedbacks = generateDemoFeedbacks(branches);
-
+          const store = useAppStore.getState();
           const BATCH_LIMIT = 450;
           const allOps: Array<{ ref: ReturnType<typeof doc>; data: Branch | Feedback }> = [];
-          branches.forEach((b) => allOps.push({ ref: doc(db, "branches", b.id), data: b }));
-          feedbacks.forEach((f) => allOps.push({ ref: doc(db, "feedbacks", f.id), data: f }));
+          store.branches.forEach((b) => allOps.push({ ref: doc(db, "branches", b.id), data: b }));
+          store.feedbacks.forEach((f) => allOps.push({ ref: doc(db, "feedbacks", f.id), data: f }));
 
           for (let i = 0; i < allOps.length; i += BATCH_LIMIT) {
             const batch = writeBatch(db);
@@ -75,14 +86,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (err) {
         console.warn("Firebase unavailable, using local data:", err);
-        const store = useAppStore.getState();
-        if (store.branches.length === 0) {
-          const branches = generateDemoBranches();
-          const feedbacks = generateDemoFeedbacks(branches);
-          store.setBranches(branches);
-          store.setFeedbacks(feedbacks);
-        }
-        store.setConnected(false);
+        useAppStore.getState().setConnected(false);
       }
     })();
 

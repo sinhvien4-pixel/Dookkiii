@@ -6,25 +6,25 @@ function minutesAgo(m: number): string {
 }
 
 function makeTables(branchId: string, count: number): Table[] {
+  const pattern: Table["status"][] = [
+    "available", "occupied", "occupied", "cleaning",
+    "occupied", "available", "occupied", "occupied",
+    "available", "occupied", "cleaning", "occupied",
+    "occupied", "available", "occupied", "cleaning",
+    "available", "occupied", "occupied", "occupied",
+  ];
+  const guestsPattern = [0, 3, 2, 0, 4, 0, 1, 3, 0, 2, 0, 4, 3, 0, 2, 0, 0, 1, 3, 2];
+  const elapsedPattern = [0, 25, 55, 0, 10, 0, 70, 40, 0, 60, 0, 15, 35, 0, 50, 0, 0, 80, 20, 45];
+
   const tables: Table[] = [];
   for (let i = 1; i <= count; i++) {
-    const rand = Math.random();
-    let status: Table["status"];
-    let startTime: string | null = null;
-    let guests = 0;
-
-    if (rand < 0.35) {
-      status = "available";
-    } else if (rand < 0.80) {
-      status = "occupied";
-      guests = Math.floor(Math.random() * 4) + 1;
-      startTime = minutesAgo(Math.floor(Math.random() * 78) + 5);
-    } else {
-      status = "cleaning";
-    }
+    const idx = (i - 1) % pattern.length;
+    const status = pattern[idx];
+    const guests = status === "occupied" ? guestsPattern[idx] || 2 : 0;
+    const startTime = status === "occupied" ? minutesAgo(elapsedPattern[idx] || 30) : null;
 
     tables.push({
-      id: uuidv4(),
+      id: `${branchId}-table-${i}`,
       branchId,
       number: i,
       status,
@@ -40,7 +40,7 @@ function makeTables(branchId: string, count: number): Table[] {
 function makeEmployees(branchId: string, names: string[]): Employee[] {
   const positions = ["Phục vụ bàn", "Thu ngân", "Quản lý ca", "Bếp trưởng", "Phụ bếp"];
   return names.map((name, i) => ({
-    id: uuidv4(),
+    id: `${branchId}-emp-${i}`,
     branchId,
     name,
     position: positions[i % positions.length],
@@ -52,13 +52,15 @@ function makeEmployees(branchId: string, names: string[]): Employee[] {
 
 function makeQueue(branchId: string, count: number): WaitingCustomer[] {
   const names = ["Anh Minh", "Chị Lan", "Anh Tuấn", "Chị Hoa", "Anh Đức", "Chị Mai", "Anh Hùng", "Chị Thu"];
+  const partySizes = [2, 4, 1, 3, 2, 4, 3, 1];
+  const waitMins = [5, 12, 3, 18, 8, 22, 10, 15];
   return Array.from({ length: count }, (_, i) => ({
-    id: uuidv4(),
+    id: `${branchId}-queue-${i}`,
     branchId,
     name: names[i % names.length],
-    partySize: Math.floor(Math.random() * 4) + 1,
-    joinedAt: minutesAgo(Math.floor(Math.random() * 28) + 2),
-    phone: `09${Math.floor(10000000 + Math.random() * 89999999)}`,
+    partySize: partySizes[i % partySizes.length],
+    joinedAt: minutesAgo(waitMins[i % waitMins.length]),
+    phone: `090${1000000 + i}`,
   }));
 }
 
@@ -192,28 +194,30 @@ const DEMO_CUSTOMERS = ["Anh Nam", "Chị Hương", "Anh Tuấn", "Chị Linh", 
 
 export function generateDemoFeedbacks(branches: Branch[]): Feedback[] {
   const feedbacks: Feedback[] = [];
+  const ratings = [5, 4, 5, 3, 4, 5, 4, 2, 5, 4];
+  const mins = [15, 45, 90, 180, 300, 30, 120, 60, 240, 10];
+  let idx = 0;
 
   branches.forEach((branch) => {
-    branch.employees.forEach((emp) => {
-      const count = Math.floor(Math.random() * 6) + 3;
+    branch.employees.forEach((emp, empIdx) => {
+      const count = 3 + (empIdx % 3);
       for (let i = 0; i < count; i++) {
-        const rating = Math.random() < 0.6
-          ? Math.floor(Math.random() * 2) + 4
-          : Math.floor(Math.random() * 3) + 1;
+        const rating = ratings[idx % ratings.length];
         feedbacks.push({
-          id: uuidv4(),
+          id: `fb-${branch.id}-${emp.id}-${i}`,
           branchId: branch.id,
           branchName: branch.name,
           employeeId: emp.id,
           employeeName: emp.name,
           rating,
-          comment: DEMO_COMMENTS[Math.floor(Math.random() * DEMO_COMMENTS.length)],
-          createdAt: minutesAgo(Math.floor(Math.random() * 1440) + 10),
-          customerName: DEMO_CUSTOMERS[Math.floor(Math.random() * DEMO_CUSTOMERS.length)],
+          comment: DEMO_COMMENTS[idx % DEMO_COMMENTS.length],
+          createdAt: minutesAgo(mins[idx % mins.length]),
+          customerName: DEMO_CUSTOMERS[idx % DEMO_CUSTOMERS.length],
         });
 
         emp.totalRating += rating;
         emp.feedbackCount += 1;
+        idx++;
       }
     });
   });
