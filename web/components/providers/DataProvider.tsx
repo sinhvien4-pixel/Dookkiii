@@ -20,6 +20,28 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
         const db = getDb();
 
+        const unsubBranches = onSnapshot(
+          collection(db, "branches"),
+          (snap) => {
+            const branches: Branch[] = snap.docs.map((d) => d.data() as Branch);
+            if (branches.length > 0) {
+              useAppStore.getState().setBranches(branches);
+            }
+            useAppStore.getState().setConnected(true);
+          },
+          () => useAppStore.getState().setConnected(false)
+        );
+
+        const unsubFeedbacks = onSnapshot(
+          collection(db, "feedbacks"),
+          (snap) => {
+            const feedbacks: Feedback[] = snap.docs.map((d) => d.data() as Feedback);
+            useAppStore.getState().setFeedbacks(feedbacks);
+          }
+        );
+
+        cleanup = () => { unsubBranches(); unsubFeedbacks(); };
+
         const metaRef = doc(db, "_meta", "version");
         const metaSnap = await getDoc(metaRef);
         const currentVersion = metaSnap.exists() ? metaSnap.data().v : 0;
@@ -51,29 +73,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
           await setDoc(metaRef, { v: DATA_VERSION });
         }
-
-        const unsubBranches = onSnapshot(
-          collection(db, "branches"),
-          (snap) => {
-            const branches: Branch[] = snap.docs.map((d) => d.data() as Branch);
-            if (branches.length > 0) {
-              useAppStore.getState().setBranches(branches);
-            }
-            useAppStore.getState().setConnected(true);
-          },
-          () => useAppStore.getState().setConnected(false)
-        );
-
-        const unsubFeedbacks = onSnapshot(
-          collection(db, "feedbacks"),
-          (snap) => {
-            const feedbacks: Feedback[] = snap.docs.map((d) => d.data() as Feedback);
-            useAppStore.getState().setFeedbacks(feedbacks);
-          }
-        );
-
-        useAppStore.getState().setConnected(true);
-        cleanup = () => { unsubBranches(); unsubFeedbacks(); };
       } catch (err) {
         console.warn("Firebase unavailable, using local data:", err);
         const store = useAppStore.getState();

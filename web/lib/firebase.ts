@@ -1,5 +1,11 @@
 import { initializeApp, getApps } from "firebase/app";
-import { getFirestore, type Firestore } from "firebase/firestore";
+import {
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  type Firestore,
+} from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -16,7 +22,15 @@ export function getDb(): Firestore {
   if (!_db) {
     const app =
       getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-    _db = getFirestore(app);
+    try {
+      _db = initializeFirestore(app, {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager(),
+        }),
+      });
+    } catch {
+      _db = getFirestore(app);
+    }
   }
   return _db;
 }
