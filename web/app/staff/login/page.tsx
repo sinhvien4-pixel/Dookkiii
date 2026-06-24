@@ -3,14 +3,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ChefHat, Eye, EyeOff, Lock, User, ArrowLeft } from "lucide-react";
+import { ChefHat, Eye, EyeOff, Lock, Mail, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import { useAppStore } from "@/store/appStore";
 
 export default function StaffLoginPage() {
   const router = useRouter();
   const { setStaffName } = useAppStore();
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -18,8 +20,8 @@ export default function StaffLoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim()) {
-      setError("Vui lòng nhập tên đăng nhập.");
+    if (!email.trim()) {
+      setError("Vui lòng nhập email.");
       return;
     }
     if (!password.trim()) {
@@ -28,9 +30,28 @@ export default function StaffLoginPage() {
     }
     setError("");
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setStaffName(username.trim());
-    router.push("/staff/dashboard");
+
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+      const displayName = cred.user.displayName || cred.user.email?.split("@")[0] || "Nhân viên";
+      setStaffName(displayName);
+      router.push("/staff/dashboard");
+    } catch (err: unknown) {
+      const code = (err as { code?: string }).code;
+      if (code === "auth/user-not-found" || code === "auth/invalid-credential") {
+        setError("Email hoặc mật khẩu không đúng.");
+      } else if (code === "auth/wrong-password") {
+        setError("Mật khẩu không đúng.");
+      } else if (code === "auth/invalid-email") {
+        setError("Email không hợp lệ.");
+      } else if (code === "auth/too-many-requests") {
+        setError("Quá nhiều lần thử. Vui lòng đợi một lát.");
+      } else {
+        setError("Đăng nhập thất bại. Vui lòng thử lại.");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -73,17 +94,17 @@ export default function StaffLoginPage() {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-sm text-white/60 font-medium">Tên đăng nhập</label>
+              <label className="text-sm text-white/60 font-medium">Email</label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 z-10" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 z-10" />
                 <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Nhập tên đăng nhập..."
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="staff@dookki.vn"
                   className="staff-input w-full h-11 pl-10 pr-4 rounded-xl border border-white/15 text-sm"
                   autoFocus
-                  autoComplete="username"
+                  autoComplete="email"
                 />
               </div>
             </div>
@@ -116,7 +137,7 @@ export default function StaffLoginPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3"
               >
-                ⚠️ {error}
+                {error}
               </motion.div>
             )}
 

@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
 import { Branch, Employee, Feedback } from "@/types";
 
 interface AppState {
@@ -25,70 +24,49 @@ interface AppState {
   getStaffBranch: () => Branch | null;
 }
 
-export const useAppStore = create<AppState>()(
-  persist(
-    (set, get) => ({
-      branches: [],
-      feedbacks: [],
-      isConnected: true,
-      selectedBranchId: null,
-      staffBranchId: null,
-      staffName: null,
+export const useAppStore = create<AppState>()((set, get) => ({
+  branches: [],
+  feedbacks: [],
+  isConnected: false,
+  selectedBranchId: null,
+  staffBranchId: null,
+  staffName: null,
 
-      setBranches: (branches) => set({ branches }),
-      updateBranch: (branchId, branch) =>
-        set((s) => ({ branches: s.branches.map((b) => (b.id === branchId ? branch : b)) })),
-      setFeedbacks: (feedbacks) => set({ feedbacks }),
-      setConnected: (connected) => set({ isConnected: connected }),
-      setSelectedBranch: (id) => set({ selectedBranchId: id }),
-      setStaffBranch: (id) => set({ staffBranchId: id }),
-      setStaffName: (name) => set({ staffName: name }),
+  setBranches: (branches) => set({ branches }),
+  updateBranch: (branchId, branch) =>
+    set((s) => ({
+      branches: s.branches.map((b) => (b.id === branchId ? branch : b)),
+    })),
+  setFeedbacks: (feedbacks) => set({ feedbacks }),
+  setConnected: (connected) => set({ isConnected: connected }),
+  setSelectedBranch: (id) => set({ selectedBranchId: id }),
+  setStaffBranch: (id) => set({ staffBranchId: id }),
+  setStaffName: (name) => set({ staffName: name }),
 
-      addEmployeeToBranch: (branchId, employee) =>
-        set((s) => ({
-          branches: s.branches.map((b) =>
-            b.id !== branchId
-              ? b
-              : { ...b, employees: [...b.employees, { ...employee, branchId }] }
-          ),
-        })),
+  addEmployeeToBranch: (branchId, employee) =>
+    set((s) => ({
+      branches: s.branches.map((b) =>
+        b.id !== branchId
+          ? b
+          : { ...b, employees: [...b.employees, { ...employee, branchId }] }
+      ),
+    })),
 
-      removeEmployeeFromBranch: (branchId, employeeId) =>
-        set((s) => ({
-          branches: s.branches.map((b) =>
-            b.id !== branchId
-              ? b
-              : { ...b, employees: b.employees.filter((e) => e.id !== employeeId) }
-          ),
-        })),
+  removeEmployeeFromBranch: (branchId, employeeId) =>
+    set((s) => ({
+      branches: s.branches.map((b) =>
+        b.id !== branchId
+          ? b
+          : { ...b, employees: b.employees.filter((e) => e.id !== employeeId) }
+      ),
+    })),
 
-      getSelectedBranch: () => {
-        const { branches, selectedBranchId } = get();
-        return branches.find((b) => b.id === selectedBranchId) ?? null;
-      },
-      getStaffBranch: () => {
-        const { branches, staffBranchId } = get();
-        return branches.find((b) => b.id === staffBranchId) ?? null;
-      },
-    }),
-    {
-      name: "dookki-live-board-v2",
-      storage: createJSONStorage(() => {
-        if (typeof window === "undefined") {
-          return {
-            getItem: () => null,
-            setItem: () => undefined,
-            removeItem: () => undefined,
-          };
-        }
-        return localStorage;
-      }),
-      partialize: (s) => ({
-        branches: s.branches,
-        feedbacks: s.feedbacks,
-        staffBranchId: s.staffBranchId,
-        staffName: s.staffName,
-      }),
-    }
-  )
-);
+  getSelectedBranch: () => {
+    const { branches, selectedBranchId } = get();
+    return branches.find((b) => b.id === selectedBranchId) ?? null;
+  },
+  getStaffBranch: () => {
+    const { branches, staffBranchId } = get();
+    return branches.find((b) => b.id === staffBranchId) ?? null;
+  },
+}));

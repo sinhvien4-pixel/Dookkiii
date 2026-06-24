@@ -1,6 +1,7 @@
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { useAppStore } from "@/store/appStore";
-import { generateDemoBranches, generateDemoFeedbacks } from "@/lib/demoData";
-import { Branch } from "@/types";
+import { Branch, Employee } from "@/types";
 
 export const branchService = {
   getAll(): Branch[] {
@@ -11,13 +12,25 @@ export const branchService = {
     return useAppStore.getState().branches.find((b) => b.id === id) ?? null;
   },
 
-  initialize() {
-    const store = useAppStore.getState();
-    if (store.branches.length === 0) {
-      const branches = generateDemoBranches();
-      const feedbacks = generateDemoFeedbacks(branches);
-      store.setBranches(branches);
-      store.setFeedbacks(feedbacks);
-    }
+  addEmployee(branchId: string, employee: Employee) {
+    const branch = useAppStore.getState().branches.find((b) => b.id === branchId);
+    if (!branch) return;
+
+    const updated = {
+      ...branch,
+      employees: [...branch.employees, { ...employee, branchId }],
+    };
+    setDoc(doc(db, "branches", branchId), updated);
+  },
+
+  removeEmployee(branchId: string, employeeId: string) {
+    const branch = useAppStore.getState().branches.find((b) => b.id === branchId);
+    if (!branch) return;
+
+    const updated = {
+      ...branch,
+      employees: branch.employees.filter((e) => e.id !== employeeId),
+    };
+    setDoc(doc(db, "branches", branchId), updated);
   },
 };

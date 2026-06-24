@@ -19,13 +19,14 @@ import {
 import { TableStatusBadge } from "@/components/shared/TableStatusBadge";
 import { ConnectionStatus } from "@/components/shared/ConnectionStatus";
 import { Branch, Table, WaitingCustomer, Employee, Feedback } from "@/types";
+import { branchService } from "@/services/branchService";
 import { v4 as uuidv4 } from "uuid";
 
 const AVAILABLE_POSITIONS = ["Phục vụ bàn", "Thu ngân", "Quản lý ca", "Bếp trưởng", "Phụ bếp"];
 
 export default function StaffDashboard() {
   const router = useRouter();
-  const { branches, feedbacks, staffBranchId, staffName, setStaffBranch, addEmployeeToBranch, removeEmployeeFromBranch } = useAppStore();
+  const { branches, feedbacks, staffBranchId, staffName, setStaffBranch } = useAppStore();
 
   const [customTimeDialog, setCustomTimeDialog] = useState<{ tableId: string; open: boolean } | null>(null);
   const [customMins, setCustomMins] = useState("90");
@@ -205,7 +206,7 @@ export default function StaffDashboard() {
                     feedbacks={feedbacks}
                     expanded={expandedEmployeeId === emp.id}
                     onToggle={() => setExpandedEmployeeId(expandedEmployeeId === emp.id ? null : emp.id)}
-                    onRemove={() => removeEmployeeFromBranch(staffBranchId, emp.id)}
+                    onRemove={() => branchService.removeEmployee(staffBranchId, emp.id)}
                   />
                 ))}
               </div>
@@ -409,7 +410,7 @@ export default function StaffDashboard() {
               <button
                 onClick={() => {
                   if (!newEmpName.trim() || !staffBranchId) return;
-                  addEmployeeToBranch(staffBranchId, {
+                  branchService.addEmployee(staffBranchId, {
                     id: uuidv4(),
                     branchId: staffBranchId,
                     name: newEmpName.trim(),

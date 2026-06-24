@@ -1,3 +1,5 @@
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { useAppStore } from "@/store/appStore";
 import { Feedback } from "@/types";
 import { v4 as uuidv4 } from "uuid";
@@ -15,8 +17,9 @@ export const feedbackService = {
     const employee = branch?.employees.find((e) => e.id === data.employeeId);
     if (!branch || !employee) return;
 
+    const feedbackId = uuidv4();
     const newFeedback: Feedback = {
-      id: uuidv4(),
+      id: feedbackId,
       branchId: data.branchId,
       branchName: branch.name,
       employeeId: data.employeeId,
@@ -27,21 +30,21 @@ export const feedbackService = {
       customerName: data.customerName,
     };
 
-    store.setFeedbacks([...store.feedbacks, newFeedback]);
-    store.setBranches(
-      store.branches.map((b) =>
-        b.id !== data.branchId
-          ? b
+    setDoc(doc(db, "feedbacks", feedbackId), newFeedback);
+
+    const updatedBranch = {
+      ...branch,
+      employees: branch.employees.map((e) =>
+        e.id !== data.employeeId
+          ? e
           : {
-              ...b,
-              employees: b.employees.map((e) =>
-                e.id !== data.employeeId
-                  ? e
-                  : { ...e, totalRating: e.totalRating + data.rating, feedbackCount: e.feedbackCount + 1 }
-              ),
+              ...e,
+              totalRating: e.totalRating + data.rating,
+              feedbackCount: e.feedbackCount + 1,
             }
-      )
-    );
+      ),
+    };
+    setDoc(doc(db, "branches", data.branchId), updatedBranch);
   },
 
   getAll(): Feedback[] {
