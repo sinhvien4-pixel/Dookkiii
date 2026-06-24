@@ -21,7 +21,7 @@ export function useTableTimer(table: Table) {
     };
 
     update();
-    const id = setInterval(update, 10000); // update every 10 seconds
+    const id = setInterval(update, 1000);
     return () => clearInterval(id);
   }, [table, table.startTime, table.status, table.maxDiningMinutes]);
 
