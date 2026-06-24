@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Navigation, MapPin, Clock, Users, X, List } from "lucide-react";
 import Link from "next/link";
@@ -13,6 +13,15 @@ import { Branch } from "@/types";
 export default function MapPage() {
   const { branches } = useAppStore();
   const { location, error: locationError } = useGeolocation();
+
+  const sortedBranches = useMemo(() => {
+    if (!location) return branches;
+    return [...branches].sort(
+      (a, b) =>
+        calculateDistance(location, a.coordinates) -
+        calculateDistance(location, b.coordinates)
+    );
+  }, [branches, location]);
   const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
   const [showMobileList, setShowMobileList] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
@@ -164,7 +173,7 @@ export default function MapPage() {
 
         {/* Desktop sidebar */}
         <div className="absolute top-4 left-4 z-10 w-72 max-h-[calc(100vh-200px)] overflow-y-auto space-y-2 hidden lg:block">
-          {branches.map((branch) => {
+          {sortedBranches.map((branch) => {
             const stats = getBranchStats(branch);
             const dist = location ? calculateDistance(location, branch.coordinates) : null;
 
@@ -236,7 +245,7 @@ export default function MapPage() {
               </div>
             </div>
             <div className="p-4 space-y-2">
-              {branches.map((branch) => {
+              {sortedBranches.map((branch) => {
                 const stats = getBranchStats(branch);
                 const dist = location ? calculateDistance(location, branch.coordinates) : null;
 

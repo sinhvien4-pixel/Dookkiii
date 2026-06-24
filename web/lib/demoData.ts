@@ -47,8 +47,8 @@ function makeEmployees(branchId: string, names: string[]): Employee[] {
     name,
     position: positions[i % positions.length],
     avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
-    totalRating: Math.floor(Math.random() * 160) + 360,
-    feedbackCount: Math.floor(Math.random() * 35) + 45,
+    totalRating: 0,
+    feedbackCount: 0,
   }));
 }
 
@@ -194,23 +194,31 @@ const DEMO_CUSTOMERS = ["Anh Nam", "Chị Hương", "Anh Tuấn", "Chị Linh", 
 
 export function generateDemoFeedbacks(branches: Branch[]): Feedback[] {
   const feedbacks: Feedback[] = [];
-  branches.slice(0, 5).forEach((branch) => {
-    branch.employees.slice(0, 3).forEach((emp) => {
-      const count = Math.floor(Math.random() * 2) + 1;
+
+  branches.forEach((branch) => {
+    branch.employees.forEach((emp) => {
+      const count = Math.floor(Math.random() * 6) + 3;
       for (let i = 0; i < count; i++) {
+        const rating = Math.random() < 0.6
+          ? Math.floor(Math.random() * 2) + 4
+          : Math.floor(Math.random() * 3) + 1;
         feedbacks.push({
           id: uuidv4(),
           branchId: branch.id,
           branchName: branch.name,
           employeeId: emp.id,
           employeeName: emp.name,
-          rating: Math.floor(Math.random() * 2) + 4,
+          rating,
           comment: DEMO_COMMENTS[Math.floor(Math.random() * DEMO_COMMENTS.length)],
-          createdAt: minutesAgo(Math.floor(Math.random() * 180) + 10),
+          createdAt: minutesAgo(Math.floor(Math.random() * 1440) + 10),
           customerName: DEMO_CUSTOMERS[Math.floor(Math.random() * DEMO_CUSTOMERS.length)],
         });
+
+        emp.totalRating += rating;
+        emp.feedbackCount += 1;
       }
     });
   });
+
   return feedbacks;
 }

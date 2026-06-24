@@ -56,9 +56,12 @@ const FEATURES = [
   },
 ];
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 export default function LandingPage() {
   const heroRef = useRef<HTMLDivElement>(null);
   const ytRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<any>(null);
   const { scrollY } = useScroll();
   const heroOpacity = useTransform(scrollY, [0, 600], [1, 0]);
   const heroY = useTransform(scrollY, [0, 600], [0, 150]);
@@ -66,45 +69,66 @@ export default function LandingPage() {
   useEffect(() => {
     if (typeof window === "undefined" || !ytRef.current) return;
 
-    const tag = document.createElement("script");
-    tag.src = "https://www.youtube.com/iframe_api";
-    document.head.appendChild(tag);
+    const win = window as any;
+    const PLAYER_VARS = {
+      autoplay: 1,
+      mute: 1,
+      loop: 1,
+      playlist: "c4tW2VKeBys",
+      controls: 0,
+      showinfo: 0,
+      rel: 0,
+      modestbranding: 1,
+      iv_load_policy: 3,
+      playsinline: 1,
+      disablekb: 1,
+      fs: 0,
+      origin: window.location.origin,
+    };
 
-    (window as unknown as Record<string, unknown>).onYouTubeIframeAPIReady = () => {
-      const YT = (window as unknown as Record<string, unknown>).YT as {
-        Player: new (el: HTMLElement, opts: Record<string, unknown>) => unknown;
-      };
-      new YT.Player(ytRef.current!, {
+    const createPlayer = () => {
+      if (!ytRef.current || playerRef.current) return;
+      playerRef.current = new win.YT.Player(ytRef.current, {
         videoId: "c4tW2VKeBys",
-        playerVars: {
-          autoplay: 1,
-          mute: 1,
-          loop: 1,
-          playlist: "c4tW2VKeBys",
-          controls: 0,
-          showinfo: 0,
-          rel: 0,
-          modestbranding: 1,
-          iv_load_policy: 3,
-          playsinline: 1,
-          disablekb: 1,
-          fs: 0,
-          origin: window.location.origin,
-        },
+        playerVars: PLAYER_VARS,
         events: {
-          onReady: (e: { target: { mute: () => void; playVideo: () => void } }) => {
+          onReady: (e: any) => {
             e.target.mute();
             e.target.playVideo();
           },
-          onStateChange: (e: { data: number; target: { playVideo: () => void } }) => {
+          onStateChange: (e: any) => {
             if (e.data === 0) e.target.playVideo();
           },
         },
       });
     };
 
+    if (win.YT?.Player) {
+      createPlayer();
+    } else {
+      const prev = win.onYouTubeIframeAPIReady;
+      win.onYouTubeIframeAPIReady = () => {
+        prev?.();
+        createPlayer();
+      };
+      if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+        const tag = document.createElement("script");
+        tag.src = "https://www.youtube.com/iframe_api";
+        document.head.appendChild(tag);
+      }
+    }
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        try { playerRef.current?.playVideo(); } catch { /* player not ready */ }
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
     return () => {
-      delete (window as unknown as Record<string, unknown>).onYouTubeIframeAPIReady;
+      document.removeEventListener("visibilitychange", onVisible);
+      try { playerRef.current?.destroy(); } catch { /* already gone */ }
+      playerRef.current = null;
     };
   }, []);
 
@@ -131,8 +155,8 @@ export default function LandingPage() {
         <motion.div style={{ opacity: heroOpacity, y: heroY }} className="absolute inset-0">
           <div
             ref={ytRef}
-            className="absolute inset-0 w-full h-full pointer-events-none"
-            style={{ transform: "scale(1.25)" }}
+            className="hero-yt-wrap absolute inset-0 w-full h-full pointer-events-none"
+            style={{ transform: "scale(1.3)" }}
           />
           {/* Overlays */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black pointer-events-none" />

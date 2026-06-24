@@ -72,7 +72,7 @@ export const useAppStore = create<AppState>()(
       },
     }),
     {
-      name: "dookki-live-board-v1",
+      name: "dookki-live-board-v2",
       storage: createJSONStorage(() => {
         if (typeof window === "undefined") {
           return {
