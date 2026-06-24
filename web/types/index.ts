@@ -1,4 +1,4 @@
-export type TableStatus = "available" | "occupied" | "cleaning" | "reserved";
+export type TableStatus = "available" | "occupied" | "cleaning";
 
 export interface Table {
   id: string;
@@ -62,7 +62,6 @@ export interface BranchStats {
   availableTables: number;
   occupiedTables: number;
   cleaningTables: number;
-  reservedTables: number;
   waitingCount: number;
   estimatedWaitMinutes: number;
   occupancyRate: number;

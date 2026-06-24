@@ -17,11 +17,6 @@ const CONFIG: Record<TableStatus, { label: string; className: string; dot: strin
     className: "bg-yellow-500/20 text-yellow-400 border border-yellow-500/40",
     dot: "bg-yellow-400",
   },
-  reserved: {
-    label: "Đã đặt trước",
-    className: "bg-blue-500/20 text-blue-400 border border-blue-500/40",
-    dot: "bg-blue-400",
-  },
 };
 
 interface Props {

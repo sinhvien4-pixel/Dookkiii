@@ -5,51 +5,51 @@ import { useAppStore } from "@/store/appStore";
 import { Branch, Feedback } from "@/types";
 import { generateDemoBranches, generateDemoFeedbacks } from "@/lib/demoData";
 
+const DATA_VERSION = 3;
+
 export function DataProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let cleanup: (() => void) | undefined;
-
-    const store = useAppStore.getState();
-    if (store.branches.length === 0) {
-      const branches = generateDemoBranches();
-      const feedbacks = generateDemoFeedbacks(branches);
-      store.setBranches(branches);
-      store.setFeedbacks(feedbacks);
-    }
 
     (async () => {
       try {
         const { getDb } = await import("@/lib/firebase");
         const {
-          collection, onSnapshot, getDocs, doc, writeBatch,
+          collection, onSnapshot, getDocs, doc, writeBatch, getDoc, setDoc,
         } = await import("firebase/firestore");
 
         const db = getDb();
 
-        const snap = await getDocs(collection(db, "branches"));
-        if (snap.size < 8) {
-          if (snap.size > 0) {
-            const { deleteDoc } = await import("firebase/firestore");
-            const fbSnap = await getDocs(collection(db, "feedbacks"));
+        const metaRef = doc(db, "_meta", "version");
+        const metaSnap = await getDoc(metaRef);
+        const currentVersion = metaSnap.exists() ? metaSnap.data().v : 0;
+
+        if (currentVersion < DATA_VERSION) {
+          const branchSnap = await getDocs(collection(db, "branches"));
+          const fbSnap = await getDocs(collection(db, "feedbacks"));
+
+          if (branchSnap.size > 0 || fbSnap.size > 0) {
             const delBatch = writeBatch(db);
-            snap.docs.forEach((d) => delBatch.delete(d.ref));
+            branchSnap.docs.forEach((d) => delBatch.delete(d.ref));
             fbSnap.docs.forEach((d) => delBatch.delete(d.ref));
             await delBatch.commit();
           }
 
-          const curBranches = useAppStore.getState().branches;
-          const curFeedbacks = useAppStore.getState().feedbacks;
+          const branches = generateDemoBranches();
+          const feedbacks = generateDemoFeedbacks(branches);
 
           const BATCH_LIMIT = 450;
           const allOps: Array<{ ref: ReturnType<typeof doc>; data: Branch | Feedback }> = [];
-          curBranches.forEach((b) => allOps.push({ ref: doc(db, "branches", b.id), data: b }));
-          curFeedbacks.forEach((f) => allOps.push({ ref: doc(db, "feedbacks", f.id), data: f }));
+          branches.forEach((b) => allOps.push({ ref: doc(db, "branches", b.id), data: b }));
+          feedbacks.forEach((f) => allOps.push({ ref: doc(db, "feedbacks", f.id), data: f }));
 
           for (let i = 0; i < allOps.length; i += BATCH_LIMIT) {
             const batch = writeBatch(db);
             allOps.slice(i, i + BATCH_LIMIT).forEach((op) => batch.set(op.ref, op.data));
             await batch.commit();
           }
+
+          await setDoc(metaRef, { v: DATA_VERSION });
         }
 
         const unsubBranches = onSnapshot(
@@ -76,7 +76,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         cleanup = () => { unsubBranches(); unsubFeedbacks(); };
       } catch (err) {
         console.warn("Firebase unavailable, using local data:", err);
-        useAppStore.getState().setConnected(false);
+        const store = useAppStore.getState();
+        if (store.branches.length === 0) {
+          const branches = generateDemoBranches();
+          const feedbacks = generateDemoFeedbacks(branches);
+          store.setBranches(branches);
+          store.setFeedbacks(feedbacks);
+        }
+        store.setConnected(false);
       }
     })();
 

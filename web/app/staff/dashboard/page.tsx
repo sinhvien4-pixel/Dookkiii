@@ -522,9 +522,7 @@ function TableCard({
           ? "border-green-500/30 bg-green-500/5"
           : table.status === "occupied"
           ? "border-red-500/30 bg-red-500/5"
-          : table.status === "cleaning"
-          ? "border-yellow-500/30 bg-yellow-500/5"
-          : "border-blue-500/30 bg-blue-500/5"
+          : "border-yellow-500/30 bg-yellow-500/5"
       }`}
     >
       <div className="flex items-start justify-between mb-3">
@@ -603,22 +601,6 @@ function TableCard({
           >
             ✓ Sẵn Sàng Phục Vụ
           </button>
-        )}
-        {table.status === "reserved" && (
-          <div className="flex gap-1.5">
-            <button
-              onClick={onStart}
-              className="flex-1 py-2 rounded-lg bg-dookki-red hover:bg-dookki-red-dark text-white text-xs font-bold transition-colors"
-            >
-              Bắt Đầu
-            </button>
-            <button
-              onClick={onAvailable}
-              className="flex-1 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-colors"
-            >
-              Hủy Đặt
-            </button>
-          </div>
         )}
       </div>
     </div>

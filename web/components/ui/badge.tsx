@@ -13,7 +13,6 @@ const badgeVariants = cva(
         available: "bg-green-500/20 text-green-400 border border-green-500/30",
         occupied: "bg-red-500/20 text-red-400 border border-red-500/30",
         cleaning: "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30",
-        reserved: "bg-blue-500/20 text-blue-400 border border-blue-500/30",
         success: "bg-green-600 text-white",
         warning: "bg-yellow-500 text-black",
         danger: "bg-red-600 text-white",

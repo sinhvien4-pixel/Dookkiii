@@ -173,21 +173,18 @@ function FIDSTableCard({ table, index }: { table: Table; index: number }) {
     available: "bg-green-950 border-green-500",
     occupied: "bg-red-950 border-red-500",
     cleaning: "bg-yellow-950 border-yellow-500",
-    reserved: "bg-blue-950 border-blue-500",
   };
 
   const headerMap: Record<Table["status"], string> = {
     available: "bg-green-500",
     occupied: "bg-red-500",
     cleaning: "bg-yellow-500",
-    reserved: "bg-blue-500",
   };
 
   const textMap: Record<Table["status"], string> = {
     available: "text-green-300",
     occupied: "text-red-300",
     cleaning: "text-yellow-300",
-    reserved: "text-blue-300",
   };
 
   return (

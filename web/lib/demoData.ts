@@ -13,16 +13,14 @@ function makeTables(branchId: string, count: number): Table[] {
     let startTime: string | null = null;
     let guests = 0;
 
-    if (rand < 0.30) {
+    if (rand < 0.35) {
       status = "available";
-    } else if (rand < 0.72) {
+    } else if (rand < 0.80) {
       status = "occupied";
       guests = Math.floor(Math.random() * 4) + 1;
       startTime = minutesAgo(Math.floor(Math.random() * 78) + 5);
-    } else if (rand < 0.88) {
-      status = "cleaning";
     } else {
-      status = "reserved";
+      status = "cleaning";
     }
 
     tables.push({

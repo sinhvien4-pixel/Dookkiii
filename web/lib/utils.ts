@@ -11,12 +11,9 @@ export function getBranchStats(branch: Branch): BranchStats {
   const available = tables.filter((t) => t.status === "available").length;
   const occupied = tables.filter((t) => t.status === "occupied").length;
   const cleaning = tables.filter((t) => t.status === "cleaning").length;
-  const reserved = tables.filter((t) => t.status === "reserved").length;
   const waiting = branch.waitingQueue.length;
   const occupancyRate = tables.length > 0 ? Math.round((occupied / tables.length) * 100) : 0;
 
-  // Estimate: each occupied table takes ~90 mins, currently at some point; avg remaining ~30 min
-  // Wait = (waiting customers / available turnover rate)
   const estimatedWait = available === 0 && waiting > 0
     ? Math.max(15, Math.floor(waiting * 12))
     : waiting > 0
@@ -28,7 +25,6 @@ export function getBranchStats(branch: Branch): BranchStats {
     availableTables: available,
     occupiedTables: occupied,
     cleaningTables: cleaning,
-    reservedTables: reserved,
     waitingCount: waiting,
     estimatedWaitMinutes: estimatedWait,
     occupancyRate,
@@ -64,7 +60,6 @@ export function getStatusVi(status: Table["status"]): string {
     available: "Trống",
     occupied: "Đang sử dụng",
     cleaning: "Đang dọn dẹp",
-    reserved: "Đã đặt trước",
   };
   return map[status];
 }
@@ -74,7 +69,6 @@ export function getStatusColor(status: Table["status"]): string {
     available: "bg-green-500 text-white",
     occupied: "bg-red-500 text-white",
     cleaning: "bg-yellow-500 text-black",
-    reserved: "bg-blue-500 text-white",
   };
   return map[status];
 }
@@ -84,7 +78,6 @@ export function getStatusBorder(status: Table["status"]): string {
     available: "border-green-500",
     occupied: "border-red-500",
     cleaning: "border-yellow-400",
-    reserved: "border-blue-500",
   };
   return map[status];
 }
