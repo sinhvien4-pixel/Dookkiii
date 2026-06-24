@@ -155,7 +155,7 @@ export default function LiveBoardPage() {
       <div className="fixed bottom-0 left-0 right-0 bg-dookki-red h-10 flex items-center overflow-hidden">
         <div className="ticker-text text-white font-bold text-sm tracking-wide whitespace-nowrap">
           {Array(5).fill(
-            `🔴 ${currentBranch.name.toUpperCase()} &nbsp;|&nbsp; Giờ mở cửa: ${currentBranch.openHours} &nbsp;|&nbsp; ${stats.availableTables > 0 ? `✅ CÒN ${stats.availableTables} BÀN TRỐNG` : "⚠️ HIỆN ĐANG KÍN BÀN"} &nbsp;|&nbsp; Khách đang chờ: ${stats.waitingCount} người &nbsp;|&nbsp; Thời gian chờ ước tính: ${stats.estimatedWaitMinutes === 0 ? "Không phải chờ" : `~${stats.estimatedWaitMinutes} phút`} &nbsp;|&nbsp; `
+            `🔴 ${currentBranch.name.toUpperCase()}  |  Giờ mở cửa: ${currentBranch.openHours}  |  ${stats.availableTables > 0 ? `✅ CÒN ${stats.availableTables} BÀN TRỐNG` : "⚠️ HIỆN ĐANG KÍN BÀN"}  |  Khách đang chờ: ${stats.waitingCount} người  |  Thời gian chờ ước tính: ${stats.estimatedWaitMinutes === 0 ? "Không phải chờ" : `~${stats.estimatedWaitMinutes} phút`}  |  `
           ).join("")}
         </div>
       </div>

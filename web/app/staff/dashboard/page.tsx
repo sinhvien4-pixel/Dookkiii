@@ -94,7 +94,19 @@ export default function StaffDashboard() {
               href="/live-board"
               className="hidden sm:flex items-center gap-1.5 text-xs border border-white/10 rounded-lg px-3 py-1.5 text-white/60 hover:text-white hover:border-white/30 transition-colors"
             >
-              📺 Bảng Live
+              📺 Live TV
+            </Link>
+            <Link
+              href="/analytics"
+              className="hidden sm:flex items-center gap-1.5 text-xs border border-white/10 rounded-lg px-3 py-1.5 text-white/60 hover:text-white hover:border-white/30 transition-colors"
+            >
+              📊 Thống Kê
+            </Link>
+            <Link
+              href="/map"
+              className="hidden sm:flex items-center gap-1.5 text-xs border border-white/10 rounded-lg px-3 py-1.5 text-white/60 hover:text-white hover:border-white/30 transition-colors"
+            >
+              🗺️ Bản Đồ
             </Link>
             <button
               onClick={() => {

@@ -136,19 +136,6 @@ export default function SelectPage() {
           </motion.div>
         </div>
 
-        {/* Other links */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm text-white/30"
-        >
-          <Link href="/live-board" className="hover:text-white/60 transition-colors">📺 Bảng Live TV</Link>
-          <span>•</span>
-          <Link href="/analytics" className="hover:text-white/60 transition-colors">📊 Thống Kê</Link>
-          <span>•</span>
-          <Link href="/map" className="hover:text-white/60 transition-colors">🗺️ Bản Đồ</Link>
-        </motion.div>
       </div>
     </div>
   );
