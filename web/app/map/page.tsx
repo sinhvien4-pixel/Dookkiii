@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Navigation, MapPin, Clock, Users, X } from "lucide-react";
+import { ArrowLeft, Navigation, MapPin, Clock, Users, X, List } from "lucide-react";
 import Link from "next/link";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { useAppStore } from "@/store/appStore";
@@ -14,12 +14,12 @@ export default function MapPage() {
   const { branches } = useAppStore();
   const { location, error: locationError } = useGeolocation();
   const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
+  const [showMobileList, setShowMobileList] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<unknown>(null);
   const markersRef = useRef<unknown[]>([]);
   const userMarkerRef = useRef<unknown>(null);
 
-  // Initialize map once
   useEffect(() => {
     if (typeof window === "undefined" || !mapRef.current) return;
 
@@ -50,7 +50,6 @@ export default function MapPage() {
     return () => { mounted = false; };
   }, []);
 
-  // Update branch markers whenever branches data changes
   useEffect(() => {
     if (!mapInstance.current || typeof window === "undefined" || branches.length === 0) return;
 
@@ -58,33 +57,41 @@ export default function MapPage() {
       const L = mod.default;
       const map = mapInstance.current as import("leaflet").Map;
 
-      // Remove stale branch markers
       markersRef.current.forEach((m) => (m as import("leaflet").Marker).remove());
       markersRef.current = [];
 
-      const dookkiIcon = L.divIcon({
-        html: `<div style="background:#E8212C;border:3px solid white;border-radius:50% 50% 50% 0;width:32px;height:32px;transform:rotate(-45deg);box-shadow:0 4px 12px rgba(232,33,44,0.5)"></div>`,
-        className: "",
-        iconSize: [32, 32],
-        iconAnchor: [16, 32],
-        popupAnchor: [0, -32],
-      });
-
       branches.forEach((branch) => {
         const stats = getBranchStats(branch);
+        const shortName = branch.name.replace("Dookki ", "");
+        const statusText = stats.availableTables > 0
+          ? `${stats.availableTables} bàn trống`
+          : "Hết bàn";
+        const statusColor = stats.availableTables > 0 ? "#22c55e" : "#ef4444";
+
+        const dookkiIcon = L.divIcon({
+          html: `
+            <div style="display:flex;flex-direction:column;align-items:center;pointer-events:auto">
+              <div style="background:rgba(0,0,0,0.85);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:4px 8px;margin-bottom:4px;white-space:nowrap;text-align:center;min-width:max-content">
+                <div style="color:white;font-weight:700;font-size:11px;line-height:1.3">${shortName}</div>
+                <div style="color:${statusColor};font-size:10px;font-weight:600">${statusText}</div>
+              </div>
+              <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:6px solid rgba(0,0,0,0.85);margin-bottom:2px"></div>
+              <div style="background:#E8212C;border:3px solid white;border-radius:50%;width:14px;height:14px;box-shadow:0 2px 8px rgba(232,33,44,0.6)"></div>
+            </div>
+          `,
+          className: "",
+          iconSize: [120, 60],
+          iconAnchor: [60, 60],
+        });
+
         const marker = L.marker([branch.coordinates.lat, branch.coordinates.lng], { icon: dookkiIcon })
           .addTo(map)
-          .bindTooltip(
-            `<b>${branch.name}</b><br>${stats.availableTables > 0 ? `✅ ${stats.availableTables} bàn trống` : "❌ Hết bàn"}`,
-            { permanent: false }
-          )
           .on("click", () => setSelectedBranch(branch));
         markersRef.current.push(marker);
       });
     });
   }, [branches]);
 
-  // Place/update user location marker — remove duplicate before adding new one
   useEffect(() => {
     if (!location || !mapInstance.current || typeof window === "undefined") return;
 
@@ -92,7 +99,6 @@ export default function MapPage() {
       const L = mod.default;
       const map = mapInstance.current as import("leaflet").Map;
 
-      // Remove previous user marker to prevent duplicates
       if (userMarkerRef.current) {
         (userMarkerRef.current as import("leaflet").Marker).remove();
         userMarkerRef.current = null;
@@ -111,10 +117,15 @@ export default function MapPage() {
 
       userMarkerRef.current = marker;
 
-      // Pan map to user location
       map.flyTo([location.lat, location.lng], 13, { duration: 1.5 });
     });
   }, [location]);
+
+  function getDirectionsUrl(branch: Branch) {
+    return location
+      ? `https://www.google.com/maps/dir/?api=1&origin=${location.lat},${location.lng}&destination=${branch.coordinates.lat},${branch.coordinates.lng}&travelmode=driving`
+      : `https://www.google.com/maps/dir/?api=1&destination=${branch.coordinates.lat},${branch.coordinates.lng}&travelmode=driving`;
+  }
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
@@ -126,8 +137,8 @@ export default function MapPage() {
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <div>
-              <h1 className="text-xl font-black">Bản Đồ Chi Nhánh</h1>
-              <p className="text-xs text-white/40">8 chi nhánh tại Hà Nội</p>
+              <h1 className="text-xl font-black">Bản Đồ Cửa Hàng</h1>
+              <p className="text-xs text-white/40">8 cửa hàng tại Hà Nội</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -150,25 +161,19 @@ export default function MapPage() {
       <div className="flex-1 relative" style={{ minHeight: "60vh" }}>
         <div ref={mapRef} className="absolute inset-0 z-0" />
 
-        {/* Branch list sidebar */}
+        {/* Desktop sidebar */}
         <div className="absolute top-4 left-4 z-10 w-72 max-h-[calc(100vh-200px)] overflow-y-auto space-y-2 hidden lg:block">
           {branches.map((branch) => {
             const stats = getBranchStats(branch);
             const dist = location ? calculateDistance(location, branch.coordinates) : null;
-            // Build navigation URL with user GPS as origin when available
-            const directionsUrl = location
-              ? `https://www.google.com/maps/dir/?api=1&origin=${location.lat},${location.lng}&destination=${branch.coordinates.lat},${branch.coordinates.lng}&travelmode=driving`
-              : `https://www.google.com/maps/dir/?api=1&destination=${branch.coordinates.lat},${branch.coordinates.lng}&travelmode=driving`;
 
             return (
-              // Changed from motion.button to motion.div so we can nest an <a> inside
               <motion.div
                 key={branch.id}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 className="rounded-xl bg-black/80 backdrop-blur-sm border border-white/10 hover:border-dookki-red/50 transition-all overflow-hidden"
               >
-                {/* Clickable info area — opens detail popup */}
                 <button
                   onClick={() => setSelectedBranch(branch)}
                   className="w-full text-left p-3"
@@ -187,9 +192,8 @@ export default function MapPage() {
                     {stats.waitingCount > 0 && <span><Users className="w-3 h-3 inline mr-1" />{stats.waitingCount} chờ</span>}
                   </div>
                 </button>
-                {/* "Chỉ đường" button — opens Google Maps with GPS origin → branch destination */}
                 <a
-                  href={directionsUrl}
+                  href={getDirectionsUrl(branch)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-1.5 w-full py-2 border-t border-white/10 text-xs text-white/50 hover:bg-dookki-red hover:text-white hover:border-dookki-red transition-all font-semibold"
@@ -201,7 +205,79 @@ export default function MapPage() {
             );
           })}
         </div>
+
+        {/* Mobile: toggle list button */}
+        <button
+          onClick={() => setShowMobileList(!showMobileList)}
+          className="lg:hidden absolute top-4 left-4 z-10 flex items-center gap-2 bg-black/80 backdrop-blur-sm border border-white/10 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-lg"
+        >
+          <List className="w-4 h-4" />
+          {showMobileList ? "Ẩn danh sách" : "Xem cửa hàng"}
+        </button>
       </div>
+
+      {/* Mobile branch list (bottom sheet) */}
+      <AnimatePresence>
+        {showMobileList && !selectedBranch && (
+          <motion.div
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-gray-900 border-t border-white/10 rounded-t-3xl max-h-[55vh] overflow-y-auto"
+          >
+            <div className="sticky top-0 bg-gray-900 px-6 pt-4 pb-2 border-b border-white/10">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-sm">8 Cửa Hàng</h3>
+                <button onClick={() => setShowMobileList(false)} className="p-1.5 rounded-lg hover:bg-white/10 text-white/40">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            <div className="p-4 space-y-2">
+              {branches.map((branch) => {
+                const stats = getBranchStats(branch);
+                const dist = location ? calculateDistance(location, branch.coordinates) : null;
+
+                return (
+                  <div
+                    key={branch.id}
+                    className="rounded-xl bg-white/5 border border-white/10 overflow-hidden"
+                  >
+                    <button
+                      onClick={() => { setShowMobileList(false); setSelectedBranch(branch); }}
+                      className="w-full text-left p-3"
+                    >
+                      <div className="flex items-start justify-between mb-1">
+                        <span className="font-bold text-sm">{branch.name}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ml-2 ${
+                          stats.availableTables > 0 ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
+                        }`}>
+                          {stats.availableTables > 0 ? `${stats.availableTables} trống` : "Hết bàn"}
+                        </span>
+                      </div>
+                      <div className="text-xs text-white/40">{branch.address}</div>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-white/50">
+                        {dist !== null && <span><Navigation className="w-3 h-3 inline mr-1" />{dist} km</span>}
+                        {stats.waitingCount > 0 && <span><Users className="w-3 h-3 inline mr-1" />{stats.waitingCount} chờ</span>}
+                      </div>
+                    </button>
+                    <a
+                      href={getDirectionsUrl(branch)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-1.5 w-full py-2.5 border-t border-white/10 text-xs text-dookki-red font-semibold active:bg-dookki-red active:text-white transition-colors"
+                    >
+                      <Navigation className="w-3 h-3" />
+                      Chỉ đường Google Maps
+                    </a>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Branch Detail Popup */}
       <AnimatePresence>
@@ -228,10 +304,6 @@ export default function MapPage() {
             {(() => {
               const stats = getBranchStats(selectedBranch);
               const dist = location ? calculateDistance(location, selectedBranch.coordinates) : null;
-              // Navigation URL: origin = user GPS (if available), destination = branch coordinates
-              const directionsUrl = location
-                ? `https://www.google.com/maps/dir/?api=1&origin=${location.lat},${location.lng}&destination=${selectedBranch.coordinates.lat},${selectedBranch.coordinates.lng}&travelmode=driving`
-                : `https://www.google.com/maps/dir/?api=1&destination=${selectedBranch.coordinates.lat},${selectedBranch.coordinates.lng}&travelmode=driving`;
 
               return (
                 <>
@@ -264,7 +336,7 @@ export default function MapPage() {
                   </div>
 
                   <a
-                    href={directionsUrl}
+                    href={getDirectionsUrl(selectedBranch)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-dookki-red hover:bg-dookki-red-dark text-white font-bold transition-colors"

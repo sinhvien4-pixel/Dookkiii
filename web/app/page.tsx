@@ -84,10 +84,10 @@ export default function LandingPage() {
       <section ref={heroRef} className="relative h-screen flex items-center justify-center overflow-hidden">
         <motion.div style={{ opacity: heroOpacity, y: heroY }} className="absolute inset-0">
           <iframe
-            src="https://www.youtube.com/embed/c4tW2VKeBys?autoplay=1&mute=1&loop=1&playlist=c4tW2VKeBys&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&vq=hd1080"
+            src="https://www.youtube.com/embed/c4tW2VKeBys?autoplay=1&mute=1&loop=1&playlist=c4tW2VKeBys&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1"
             className="absolute inset-0 w-full h-full pointer-events-none"
             style={{ transform: "scale(1.15)" }}
-            allow="autoplay; encrypted-media"
+            allow="autoplay; encrypted-media; fullscreen"
             allowFullScreen
           />
           {/* Overlays */}
