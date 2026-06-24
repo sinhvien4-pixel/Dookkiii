@@ -5,7 +5,7 @@ import { Feedback } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 
 export const feedbackService = {
-  create(data: {
+  async create(data: {
     branchId: string;
     employeeId: string;
     rating: number;
@@ -30,9 +30,6 @@ export const feedbackService = {
       customerName: data.customerName,
     };
 
-    const db = getDb();
-    setDoc(doc(db, "feedbacks", feedbackId), newFeedback);
-
     const updatedBranch = {
       ...branch,
       employees: branch.employees.map((e) =>
@@ -45,7 +42,19 @@ export const feedbackService = {
             }
       ),
     };
-    setDoc(doc(db, "branches", data.branchId), updatedBranch);
+
+    // Optimistic update — UI reflects immediately
+    store.setFeedbacks([...store.feedbacks, newFeedback]);
+    store.updateBranch(data.branchId, updatedBranch);
+
+    // Persist to Firestore
+    try {
+      const db = getDb();
+      await setDoc(doc(db, "feedbacks", feedbackId), newFeedback);
+      await setDoc(doc(db, "branches", data.branchId), updatedBranch);
+    } catch (err) {
+      console.error("Failed to save feedback to Firebase:", err);
+    }
   },
 
   getAll(): Feedback[] {

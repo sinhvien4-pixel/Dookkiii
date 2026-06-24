@@ -4,7 +4,8 @@ import { useAppStore } from "@/store/appStore";
 import { Table } from "@/types";
 
 function patchAndSave(branchId: string, tableId: string, patch: Partial<Table>) {
-  const branch = useAppStore.getState().branches.find((b) => b.id === branchId);
+  const store = useAppStore.getState();
+  const branch = store.branches.find((b) => b.id === branchId);
   if (!branch) return;
 
   const updated = {
@@ -13,7 +14,12 @@ function patchAndSave(branchId: string, tableId: string, patch: Partial<Table>) 
       t.id !== tableId ? t : { ...t, ...patch }
     ),
   };
-  setDoc(doc(getDb(), "branches", branchId), updated);
+
+  store.updateBranch(branchId, updated);
+
+  setDoc(doc(getDb(), "branches", branchId), updated).catch((err) =>
+    console.error("Failed to save table change:", err)
+  );
 }
 
 export const tableService = {

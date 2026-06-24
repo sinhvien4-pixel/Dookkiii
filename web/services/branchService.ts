@@ -13,24 +13,36 @@ export const branchService = {
   },
 
   addEmployee(branchId: string, employee: Employee) {
-    const branch = useAppStore.getState().branches.find((b) => b.id === branchId);
+    const store = useAppStore.getState();
+    const branch = store.branches.find((b) => b.id === branchId);
     if (!branch) return;
 
     const updated = {
       ...branch,
       employees: [...branch.employees, { ...employee, branchId }],
     };
-    setDoc(doc(getDb(), "branches", branchId), updated);
+
+    store.updateBranch(branchId, updated);
+
+    setDoc(doc(getDb(), "branches", branchId), updated).catch((err) =>
+      console.error("Failed to save employee add:", err)
+    );
   },
 
   removeEmployee(branchId: string, employeeId: string) {
-    const branch = useAppStore.getState().branches.find((b) => b.id === branchId);
+    const store = useAppStore.getState();
+    const branch = store.branches.find((b) => b.id === branchId);
     if (!branch) return;
 
     const updated = {
       ...branch,
       employees: branch.employees.filter((e) => e.id !== employeeId),
     };
-    setDoc(doc(getDb(), "branches", branchId), updated);
+
+    store.updateBranch(branchId, updated);
+
+    setDoc(doc(getDb(), "branches", branchId), updated).catch((err) =>
+      console.error("Failed to save employee remove:", err)
+    );
   },
 };
