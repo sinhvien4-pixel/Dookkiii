@@ -1,5 +1,5 @@
 import { doc, setDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { getDb } from "@/lib/firebase";
 import { useAppStore } from "@/store/appStore";
 import { Feedback } from "@/types";
 import { v4 as uuidv4 } from "uuid";
@@ -30,6 +30,7 @@ export const feedbackService = {
       customerName: data.customerName,
     };
 
+    const db = getDb();
     setDoc(doc(db, "feedbacks", feedbackId), newFeedback);
 
     const updatedBranch = {

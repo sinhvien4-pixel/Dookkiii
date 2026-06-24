@@ -1,5 +1,5 @@
 import { doc, setDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { getDb } from "@/lib/firebase";
 import { useAppStore } from "@/store/appStore";
 import { Table } from "@/types";
 
@@ -13,7 +13,7 @@ function patchAndSave(branchId: string, tableId: string, patch: Partial<Table>) 
       t.id !== tableId ? t : { ...t, ...patch }
     ),
   };
-  setDoc(doc(db, "branches", branchId), updated);
+  setDoc(doc(getDb(), "branches", branchId), updated);
 }
 
 export const tableService = {

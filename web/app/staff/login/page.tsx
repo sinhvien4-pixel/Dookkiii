@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ChefHat, Eye, EyeOff, Lock, Mail, ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
 import { useAppStore } from "@/store/appStore";
 
 export default function StaffLoginPage() {
@@ -32,6 +30,16 @@ export default function StaffLoginPage() {
     setLoading(true);
 
     try {
+      const { getAuth, signInWithEmailAndPassword } = await import("firebase/auth");
+      const { getApps, initializeApp } = await import("firebase/app");
+      if (getApps().length === 0) {
+        initializeApp({
+          apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+          authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+          projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        });
+      }
+      const auth = getAuth();
       const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
       const displayName = cred.user.displayName || cred.user.email?.split("@")[0] || "Nhân viên";
       setStaffName(displayName);

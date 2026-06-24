@@ -1,5 +1,5 @@
 import { doc, setDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { getDb } from "@/lib/firebase";
 import { useAppStore } from "@/store/appStore";
 import { Branch, Employee } from "@/types";
 
@@ -20,7 +20,7 @@ export const branchService = {
       ...branch,
       employees: [...branch.employees, { ...employee, branchId }],
     };
-    setDoc(doc(db, "branches", branchId), updated);
+    setDoc(doc(getDb(), "branches", branchId), updated);
   },
 
   removeEmployee(branchId: string, employeeId: string) {
@@ -31,6 +31,6 @@ export const branchService = {
       ...branch,
       employees: branch.employees.filter((e) => e.id !== employeeId),
     };
-    setDoc(doc(db, "branches", branchId), updated);
+    setDoc(doc(getDb(), "branches", branchId), updated);
   },
 };

@@ -1,5 +1,5 @@
 import { doc, setDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { getDb } from "@/lib/firebase";
 import { useAppStore } from "@/store/appStore";
 import { v4 as uuidv4 } from "uuid";
 
@@ -22,7 +22,7 @@ export const queueService = {
         },
       ],
     };
-    setDoc(doc(db, "branches", branchId), updated);
+    setDoc(doc(getDb(), "branches", branchId), updated);
   },
 
   remove(branchId: string, customerId: string) {
@@ -33,6 +33,6 @@ export const queueService = {
       ...branch,
       waitingQueue: branch.waitingQueue.filter((c) => c.id !== customerId),
     };
-    setDoc(doc(db, "branches", branchId), updated);
+    setDoc(doc(getDb(), "branches", branchId), updated);
   },
 };

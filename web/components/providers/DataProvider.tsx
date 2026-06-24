@@ -9,12 +9,13 @@ import {
   setDoc,
   writeBatch,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { getDb } from "@/lib/firebase";
 import { useAppStore } from "@/store/appStore";
 import { Branch, Feedback } from "@/types";
 import { generateDemoBranches, generateDemoFeedbacks } from "@/lib/demoData";
 
 async function seedIfEmpty() {
+  const db = getDb();
   const snap = await getDocs(collection(db, "branches"));
   if (snap.size > 0) return;
 
@@ -29,9 +30,9 @@ async function seedIfEmpty() {
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    const store = useAppStore.getState();
+    const db = getDb();
 
-    seedIfEmpty().then(() => store.setConnected(true));
+    seedIfEmpty().then(() => useAppStore.getState().setConnected(true));
 
     const unsubBranches = onSnapshot(
       collection(db, "branches"),
