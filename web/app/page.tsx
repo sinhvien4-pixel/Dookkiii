@@ -254,7 +254,7 @@ export default function LandingPage() {
       <div className="bg-dookki-red py-3 overflow-hidden">
         <div className="ticker-text text-white font-semibold text-sm tracking-wide">
           {Array(4).fill(
-            "🍖 Dookki Korean Buffet Hà Nội &nbsp;•&nbsp; Cập nhật bàn theo thời gian thực &nbsp;•&nbsp; 8 chi nhánh tại Hà Nội &nbsp;•&nbsp; Giảm thời gian chờ đến 60% &nbsp;•&nbsp;"
+            "🍖 Dookki Korean Buffet Hà Nội  •  Cập nhật bàn theo thời gian thực  •  8 chi nhánh tại Hà Nội  •  Giảm thời gian chờ đến 60%  •  "
           ).join("")}
         </div>
       </div>
